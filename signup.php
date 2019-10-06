@@ -27,7 +27,7 @@ if (isset($_SESSION['user'])) {
         z-index: 1;
     }
 
-    .btnSubmit{
+    .btnSubmit {
         cursor: pointer;
     }
 
@@ -38,7 +38,7 @@ if (isset($_SESSION['user'])) {
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light fbl-nav">
-        <a href="./index.php"><img  src="./assets/facebook-1.svg" style="max-height:45px;padding-left:100px"></a>
+        <a href="./index.php"><img src="./assets/facebook-1.svg" style="max-height:45px;padding-left:100px"></a>
     </nav>
 
     <div class="container ">
@@ -49,7 +49,7 @@ if (isset($_SESSION['user'])) {
                 </div>
                 <div class=" card col-md-6 py-5 mt-5">
                     <h3 class="text-center py-2">Sign up</h3>
-                    <form>
+                    <div>
                         <div class="form-group">
                             <input type="email" id="reg-email" class="form-control" placeholder="Email *" value="" required />
                         </div>
@@ -59,20 +59,20 @@ if (isset($_SESSION['user'])) {
                         </div>
 
                         <div class="form-group">
-                            <input type="text" id="fullName" class="form-control" placeholder="Full Name *" value="" required />
+                            <input type="text" id="fullName" class="form-control" placeholder="Full Name" value="" />
                         </div>
 
                         <div class="form-group">
-                            <input type="text" id="screen-name" class="form-control" placeholder="Screen Name *" value="" required minlength="8" />
+                            <input type="text" id="screen-name" class="form-control" placeholder="Screen Name *" value="" />
                         </div>
 
                         <div class="form-group">
-                            <input type="date" id="dob" class="form-control" placeholder="Date of Birth *" value="" required />
+                            <input type="date" id="dob" class="form-control" placeholder="Date of Birth" value="" />
                         </div>
 
                         <div class="input-group mb-3">
                             <select class="custom-select" id="gender" required>
-                                <option value="">Gender *</option>
+                                <option value="">Gender</option>
                                 <option value="M">Male</option>
                                 <option value="F">Female</option>
                                 <option value="O">Other</option>
@@ -81,7 +81,7 @@ if (isset($_SESSION['user'])) {
 
                         <div class="input-group mb-3">
                             <select class="custom-select" id="status" required>
-                                <option value="">Status *</option>
+                                <option value="">Status</option>
                                 <option value="S">Single</option>
                                 <option value="M">Married</option>
                                 <option value="I">Its Complicated</option>
@@ -89,7 +89,7 @@ if (isset($_SESSION['user'])) {
                         </div>
 
                         <div class="form-group">
-                            <input type="text" id="location" class="form-control" placeholder="Location *" value="" required />
+                            <input type="text" id="location" class="form-control" placeholder="Location" value="" />
                         </div>
 
 
@@ -102,16 +102,18 @@ if (isset($_SESSION['user'])) {
                             </select>
                         </div>
 
-                        <div class="form-group">
-                            <input class=" btn btn-primary btnSubmit" value="Sign up" onClick="register()" />
+                        <div class="form-group text-center">
+                            <input type="button" class=" btn btn-primary btnSubmit" value="Sign up" onClick="register()" />
                         </div>
                         <div class="alert alert-danger" id="reg_err" style="display:none" role="alert">
-                            Error. The credentials you have entered is invalid.
+                            Error !!!
+                            <ul id="errorNode">
+                            </ul>
                         </div>
                         <div class="alert alert-primary" id="reg_succ" style="display:none" role="alert">
                             User Succesfully registered.
                         </div>
-                    </form>
+                    </div>
                 </div>
                 <div class="col=md-3">
                 </div>
@@ -119,86 +121,158 @@ if (isset($_SESSION['user'])) {
         </div>
     </div>
 </body>
+
+</html>
 <script>
+    
+    // function to register a user
     function register() {
-        console.log("hi")
         dateArr = document.getElementById('dob').value.split("-")
         dateval = dateArr[2] + "/" + dateArr[1] + "/" + dateArr[0];
 
         document.getElementById('reg_err').style.display = 'none';
         document.getElementById('reg_succ').style.display = 'none';
 
-        let qbody = {
-            email: document.getElementById('reg-email').value,
-            password: document.getElementById('reg-password').value,
-            full_name: document.getElementById('fullName').value,
-            screen_name: document.getElementById('screen-name').value,
-            dob: dateval,
-            gender: document.getElementById('gender').value,
-            status: document.getElementById('status').value,
-            location: document.getElementById('location').value,
-            visibility: document.getElementById('visibility').value
-        }
+        // validating user input
+        let isValidInputs = validateRegisterUserInput();
 
-        url = './api.php/signup'
-        fetch(url, {
-                method: 'post',
-                headers: {
-                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-                body: JSON.stringify(qbody)
-            })
-            .then((response) => response.json())
-            .then(function(data) {
-                if (data.status == "Success") {
-                    // console.log('', JSON.stringify(data));
-                    document.getElementById('reg_succ').style.display = 'block';
+        // if all the inputs are valid send a request to the api
+        if (isValidInputs) {
+            let qbody = {
+                method: 'signup',
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                full_name: document.getElementById('fullName').value,
+                screen_name: document.getElementById('screen-name').value,
+                dob: dateval,
+                gender: document.getElementById('gender').value,
+                status: document.getElementById('status').value,
+                location: document.getElementById('location').value,
+                visibility: document.getElementById('visibility').value
+            }
 
-                } else {
-                    console.log(JSON.stringify(data));
+            url = './api.php'
+
+            fetch(url, {
+                    method: 'post',
+                    headers: {
+                        "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                    },
+                    body: JSON.stringify(qbody)
+                })
+                .then((response) => response.json())
+                .then(function(data) {
+                    if (data.status == "Success") {
+                        // console.log('', JSON.stringify(data));
+                        document.getElementById('reg_succ').style.display = 'block';
+                        setTimeout(function(){ location.reload(); }, 3000);
+                    } else {
+                        console.log(JSON.stringify(data));
+                        document.getElementById('reg_err').style.display = 'block';
+                    }
+                })
+                .catch(function(error) {
+                    errorList.push(" This email already exists")
+
+                    for (i = 0; i < errorList.length; i++) {
+                        var liElement = document.createElement('li');
+                        var txt = document.createTextNode(errorList[i])
+                        liElement.appendChild(txt);
+                        document.getElementById("errorNode").appendChild(liElement);
+                    }
 
                     document.getElementById('reg_err').style.display = 'block';
-                }
-            })
-            .catch(function(error) {
-                console.log('Request failed', error);
-            });
-    }
-
-    function login() {
-
-        document.getElementById('sign_up_err').style.display = 'none';
-        document.getElementById('sign_up_succ').style.display = 'none';
-
-        let qbody = {
-            email: document.getElementById('sign_up_email').value,
-            password: document.getElementById('sign_up_password').value,
+                    console.log('Request failed', error);
+                });
         }
 
-        url = './api.php/login'
-        fetch(url, {
-                method: 'post',
-                headers: {
-                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-                body: JSON.stringify(qbody)
-            })
-            .then((response) => response.json())
-            .then(function(data) {
-                if (data.status == "Success") {
-                    document.getElementById('sign_up_succ').style.display = 'block';
-                } else {
-                    console.log(JSON.stringify(data));
-                    document.getElementById('sign_up_err').style.display = 'block';
-                    setTimeout(() => {
 
-                    }, 2000);
-                }
-            })
-            .catch(function(error) {
-                console.log('Request failed', error);
-            });
     }
-</script>
 
-</html>
+    /*
+     * method to validate inputs
+     * Returns true if all inputs are valid
+     * Returns false if any invalid inputs
+     */
+    function validateRegisterUserInput() {
+        console.log("inside validate")
+
+        // Getting all the values from UI.
+        email = document.getElementById('reg-email').value;
+        password = document.getElementById('reg-password').value;
+        full_name = document.getElementById('fullName').value;
+        screen_name = document.getElementById('screen-name').value;
+        dob = dateval;
+        gender = document.getElementById('gender').value;
+        status = document.getElementById('status').value;
+        location1 = document.getElementById('location').value;
+        visibility = document.getElementById('visibility').value;
+
+        //defining a array for error statements
+        errorList = [];
+
+        //validation rules
+        // email validation
+        if (email == "") {
+            errorList.push("Email is required");
+        }
+        if (!validateEmail(email)) {
+            errorList.push("Not a valid email");
+        }
+
+        // password validation
+        if (password == "") {
+            errorList.push("Password is required");
+        } else if (password.length < 8) {
+            errorList.push("Passwords should be at least 8 charaters");
+        } else if (password.length > 15) {
+            errorList.push("Passwords should be less than 15 charaters");
+        }
+
+        // password validation
+        if (screen_name == "") {
+            errorList.push("Screen name is required");
+        } else if (screen_name.length < 6) {
+            errorList.push("Screen Name should be at least 6 charaters");
+        } else if (password.length > 15) {
+            errorList.push("Screen Name should be less than 15 charaters");
+        }
+
+        // password validation
+        if (visibility == "") {
+            errorList.push("Visibility is required");
+        }
+
+        // Deleting all the existing error nodes from dom
+        const myNode = document.getElementById("errorNode");
+        while (myNode.lastChild) {
+            console.log("once")
+            myNode.removeChild(myNode.lastChild);
+        }
+
+        // Injecting the errors to the dom
+        for (i = 0; i < errorList.length; i++) {
+            var liElement = document.createElement('li');
+            var txt = document.createTextNode(errorList[i])
+            liElement.appendChild(txt);
+            document.getElementById("errorNode").appendChild(liElement);
+        }
+        console.log(errorList)
+        //returning true or false
+        if (errorList.length == 0)
+            return true;
+        else{
+            document.getElementById('reg_err').style.display = 'block';
+            return false;
+        }
+    }
+
+    /*
+    *   method to validate email
+    */
+    function validateEmail(email) {
+        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
+</script>

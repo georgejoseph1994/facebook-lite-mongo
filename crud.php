@@ -42,16 +42,34 @@ include_once("../app/vendor/autoload.php");
 function register_user($body,$response ){
 
 try {
-    
     $client = new MongoDB\Client("mongodb://mongo:27017");
     $collection = $client->facebook->member;
     $insertOneResult = $collection->insertOne([
-        'username' => 'new-admin',
-        'email' => 'admin@example.com',
-        'name' => 'Admin User',
+        'email' => $body->email,
+        'full_name' => $body->full_name,
+        'screen_name' => $body->screen_name,
+        'dob' => $body->dob,
+        'gender' => $body->gender,
+        'status' => $body->status,
+        'location' => $body->location,
+        'visibility' => $body->visibility,
+        'password_hash' => password_hash($body->password, PASSWORD_DEFAULT),
     ]);
+    $response->status = "Success";
+    $response->code = http_response_code(200);
 
-}catch (MongoDB\Driver\Exception\Exception $e) {
+    $results = new stdClass();
+    $results->email = $body->email;
+    $results->full_name =  $body->full_name;
+    $results->screen_name = $body->screen_name;
+    $results->dob = $body->dob;
+    $results->gender = $body->gender;
+    $results->status = $body->status;
+    $results->location = $body->location;
+    $results->visibility = $body->visibility;
+    $_SESSION['user'] = $results;
+    
+}catch (Exception $e) {
 
     $filename = basename(__FILE__);
 
@@ -61,6 +79,10 @@ try {
     echo "Exception:", $e->getMessage(), "\n";
     echo "In file:", $e->getFile(), "\n";
     echo "On line:", $e->getLine(), "\n";
+    $response->code = http_response_code(400);
+    $response->status = "Error";
+    $response->errMsg = $e->getMessage();
+
 }
 
 
