@@ -1,0 +1,538 @@
+<?php
+session_start();
+// session_destroy();
+//$_SESSION['user']->email="george995@gmail.com";
+// echo json_encode($_SESSION['user']);
+
+if (!isset($_SESSION['user'])) {
+    session_destroy();
+    header('Location: login.php');
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <link href="https://unpkg.com/vue-bootstrap-typeahead/dist/VueBootstrapTypeahead.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue-bootstrap-typeahead"></script>
+    <title>Facebook Lite</title>
+</head>
+<style>
+    .fbl-nav {
+        background-color: #3b5998;
+        background-image: linear-gradient(#4e69a2, #3b5998 50%);
+        border-bottom: 1px solid #133783;
+        min-height: 42px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .logout-btn:hover {
+        color: #3b6000;
+        background-color: white;
+    }
+
+    .logout-btn {
+        background-color: #3b5998;
+        color: white;
+        border: solid;
+        border-color: white;
+        border-width: 1px;
+        width: 100px;
+        cursor: pointer;
+        position: absolute;
+        right: 20px;
+        margin-top: -18px;
+    }
+
+    .frndsButton {
+        font-size: 14px;
+        background-color: #4267B2;
+        cursor: pointer;
+    }
+
+    .friends-list {
+        height: 70px;
+        list-style-type: none;
+        margin-bottom: 10px;
+    }
+
+    body {
+        background-color: #E9EBEE;
+    }
+
+    .postHeader {
+        background-color: #F5F6F7;
+        font-size: .9rem !important;
+    }
+
+    .blueText {
+        color: #4267B2 !important;
+        font-size: .9rem !important;
+    }
+
+    .greyText {
+        color: #636972 !important;
+        font-size: .6rem !important;
+    }
+
+    .whitebtn {
+        cursor: pointer;
+        font-size: .9rem;
+        color: #636972;
+    }
+
+    .likeBtn {
+        float: right;
+
+    }
+
+    .whitebtn:hover {
+        color: #4267B2 !important;
+    }
+</style>
+
+<body>
+    <div id="app">
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light fbl-nav">
+            <a href="./index.php"><img src="./assets/facebook-1.svg" style="max-height:45px;padding-left:100px"></a>
+            <a href="./logout.php"> <input class="logout-btn  btn" onClick="logout()" value="Logout" /></a>
+        </nav>
+
+        <div>
+            <div class="row">
+
+                <div class="col-md-3">
+                    <div class=" card mt-2 ml-2 postHeader text-center py-2 blueText" style="min-height:100px;">
+                        <h6>Welcome <?php echo ($_SESSION['user']->screen_name) ?></h6>
+                        <a class="blueText" href="./account.php">Manage Account</a>
+                        <a class="blueText" href="./deleteaccount.php">Delete Account</a>
+                    </div>
+
+                </div>
+                <!-- Middle pannel -->
+                <div class="col-md-6" style="overflow-y: auto; height: calc( 100vh - 62px );">
+                    <!-- Add post -->
+                    <div class="card mt-2 mb-2 pb-2">
+                        <div class="postHeader pt-2 pl-2">
+                            <p>Create Post</p>
+                        </div>
+                        <div class="input-group">
+                            <textarea v-model="newPostBody" class="form-control mx-2" placeholder="Whats on your mind" aria-label="With textarea" maxlength="200"></textarea>
+                        </div>
+                        <div class="mt-2 mr-2">
+                            <input class="frndsButton btn btn-primary col-2 " value="Post" v-on:click="createPost(newPostBody,null,null)" :disabled=" newPostBody ==''" style="float:right" />
+                        </div>
+                    </div>
+
+                    <!-- All posts -->
+                    <div>
+                        <div v-for="(result, index) in allPosts" class="card mb-2 py-2">
+                            <div class="pl-4">
+                                <p class="blueText mb-0"> {{ result.screenName }} </p>
+                                <p class="greyText"> {{ result.timestamp.split(" ")[0] }} </p>
+                            </div>
+                            <div class="px-4 ">
+                                <p> {{ result.text }} </p>
+                            </div>
+                            <div class="px-4 ">
+                                <p class="greyText"> {{ result.noOfLikes }} Likes </p>
+                            </div>
+                            <!-- like and comment button -->
+                            <hr class="mx-4 mt-0 mb-1">
+                            <div class="row">
+                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(result.postId, result.noOfLikes, result.like )" v-if="result.like == null">Like</div>
+                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(result.postId, result.noOfLikes, result.like )" v-if="result.like != null">Unlike</div>
+                                <div class="col-2"></div>
+                                <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(result.postId)">Comment</div>
+                            </div>
+                            <hr class="mx-4 mb-4 mt-1">
+                            <!-- comment box -->
+                            <div v-if="comments[result.postId] == true">
+                                <div class="input-group pl-3 pr-3">
+                                    <textarea v-model=commentBody[result.postId] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
+                                </div>
+                                <div class="mt-2 mr-2 pr-3">
+                                    <input class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="createPost(commentBody[result.postId],result.postId, result.postId)" :disabled=" commentBody[result.postId] ==''" style="float:right" />
+                                </div>
+                            </div>
+                            <!-- {{commentBody}} -->
+                            <!-- Comments -->
+                            <div v-for="(comment, index1) in result.children" class="mb-2 px-5 py-1">
+                                <div class="pl-4">
+                                    <p class="blueText mb-0"> {{ comment.screenName }} </p>
+                                    <p class="greyText mb-0"> {{ comment.timestamp.split(" ")[0] }} </p>
+                                </div>
+                                <div class="px-4 py-0 mb-0">
+                                    <p class="mb-0"> {{ comment.text }} </p>
+                                </div>
+                                <div class="px-4 py-0 mb-0">
+                                    <p class="greyText py-0 mb-0"> {{ comment.noOfLikes }} Likes </p>
+                                </div>
+                                <!-- like and comment button -->
+                                <hr class="mx-4 mt-0 mb-1">
+                                <div class="row">
+                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(comment.postId, comment.noOfLikes, comment.like )" v-if="comment.like == null">Like</div>
+                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(comment.postId, comment.noOfLikes, comment.like )" v-if="comment.like != null">Unlike</div>
+                                    <div class="col-2"></div>
+                                    <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(comment.postId)">Comment</div>
+                                </div>
+                                <hr class="mx-4 mb-4 mt-1">
+                                <!-- comment box -->
+                                <div v-if="comments[comment.postId] == true">
+                                    <div class="input-group pl-3 pr-3">
+                                        <textarea v-model=commentBody[comment.postId] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
+                                    </div>
+                                    <div class="mt-2 mr-2 pr-3">
+                                        <input class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="createPost(commentBody[comment.postId],comment.postId, result.postId)" :disabled=" commentBody[comment.postId] ==''" style="float:right" />
+                                    </div>
+                                </div>
+                                <!-- comments of comments -->
+                                <div v-for="(commentOfComment, index1) in comment.children" class="mb-2 px-5 py-1">
+                                    <div class="pl-4">
+                                        <p class="blueText mb-0"> {{ commentOfComment.screenName }} </p>
+                                        <p class="greyText mb-0"> {{ commentOfComment.timestamp.split(" ")[0] }} </p>
+                                    </div>
+                                    <div class="px-4 py-0 mb-0">
+                                        <p class="mb-0"> {{ commentOfComment.text }} </p>
+                                    </div>
+                                    <div class="px-4 py-0 mb-0">
+                                        <p class="greyText py-0 mb-0"> {{ commentOfComment.noOfLikes }} Likes </p>
+                                    </div>
+                                    <!-- like and comment button -->
+                                    <hr class="mx-4 mt-0 mb-1">
+                                    <div class="row">
+                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like == null">Like</div>
+                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like != null">Unlike</div>
+                                        <div class="col-2"></div>
+                                        <!-- <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(commentOfComment.postId)">Comment</div> -->
+                                    </div>
+                                    <hr class="mx-4 mb-4 mt-1">
+                                </div>
+                            </div>
+                        </div>
+
+                        </div>
+                    </div>
+                    <!-- Right pannel -->
+                    <div class="col-md-3" style="max-height: calc( 100vh - 62px ) !important;">
+                        <div class="card" style="min-height: calc( 100vh - 62px )">
+                            <div class="form-group px-4 row ">
+                                <input type="text" v-model="search" class="form-control mt-2 col-8" placeholder="Search users">
+                                <div class="col-1"></div>
+                                <input class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " value="search" v-on:click="searchUser" style="float:right;min-width:70px"/>
+                            </div>
+                            <!-- {{searchResult}} -->
+                            <ul id="incomingReq">
+                                <li v-for="(item, index) in incommingFriendsReq" class="card friends-list pl-2 pt-3 mr-4 row" style="">
+                                    <div class="col-6">
+                                        {{ item.SCREEN_NAME }}
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " v-on:click="respondToFriendsRequest(item.EMAIL,'A')">Accept</button>
+                                        <button class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " v-on:click="respondToFriendsRequest(item.EMAIL,'R')">Reject</button>
+                                    </div>
+                                </li>
+                            </ul>
+                            <!-- {{searchResult}} -->
+                            <ul id="searchFriends">
+                                <li v-for="(result, index) in searchResult" class="card friends-list pl-2 pt-3 mr-4 row" style="">
+                                    <div class="col-6">
+                                        {{ result.SCREEN_NAME }}
+                                    </div>
+                                    <div class="col-6">
+                                        <button v-if="result.FRIENDSHIP_STATUS == null" v-on:click="sendFriendsRequest(result.EMAIL)" class="btn btn-secondary frndsButton">Add</button>
+                                        <button v-if="result.FRIENDSHIP_STATUS == 'S' && result.USER_EMAIL_B == '<?php echo ($_SESSION['user']->email) ?>'" class=" btn btn-secondary frndsButton ">Reject</button>
+                                        <button v-if="result.FRIENDSHIP_STATUS == 'S' && result.USER_EMAIL_A == '<?php echo ($_SESSION['user']->email) ?>'" class="btn btn-secondary frndsButton ">Pending</button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <script>
+            new Vue({
+                el: "#app",
+                components: {},
+                data: function() {
+                    return {
+                        search: '',
+                        searchResult: [],
+                        userEmail: "<?php echo ($_SESSION['user']->email) ?>",
+                        incommingFriendsReq: [],
+                        newPostBody: "",
+                        allPosts: [],
+                        comments: [],
+                        commentBody: []
+                    }
+                },
+
+                methods: {
+                    // Method to search users according to a search string
+                    searchUser: function() {
+                        var self = this;
+                        let qbody = {
+                            search: this.search,
+                        }
+
+                        url = './api.php/search'
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.searchResult = data.results;
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    // Method to send a friends request
+                    sendFriendsRequest: function(email) {
+                        var self = this;
+                        let qbody = {
+                            user_email_a: this.userEmail,
+                            user_email_b: email,
+                            status1: 'S',
+                        }
+
+                        url = './api.php/friends/send'
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.searchUser()
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    // Method to fetch all friends request
+                    fetchFriendsRequest: function() {
+                        var self = this;
+                        self.incommingFriendsReq = [];
+                        let qbody = {
+                            email: this.userEmail,
+                        }
+                        url = './api.php/friends/fetch'
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.incommingFriendsReq = data.results;
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    // Method to respond to a friends req (Accept or Reject)
+                    respondToFriendsRequest: function(email, status) {
+                        var self = this;
+                        let qbody = {
+                            user_email_a: email,
+                            user_email_b: this.userEmail,
+                            status: status,
+                        }
+
+                        url = './api.php/friends/respond'
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.fetchFriendsRequest();
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    // Method to create a post
+                    createPost: function(body, parentId, rootParentId) {
+                        if (body != "") {
+                            var self = this;
+                            let qbody = {
+                                post_body: body,
+                                email: this.userEmail,
+                                post_parent_id: parentId,
+                                root_post_id: rootParentId
+                            }
+
+                            url = './api.php/posts/create'
+                            fetch(url, {
+                                    method: 'post',
+                                    headers: {
+                                        "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                    },
+                                    body: JSON.stringify(qbody)
+                                })
+                                .then((response) => response.json())
+                                .then(function(data) {
+                                    if (data.status == "Success") {
+                                        self.fetchAllPosts();
+                                        Vue.set(self.commentBody, parentId, "");
+                                        // self.commentBody[parentId] = "";
+                                        console.log(data)
+                                    } else {
+                                        console.log(JSON.stringify(data));
+                                    }
+                                })
+                                .catch(function(error) {
+                                    console.log('Post creation failed', error);
+                                });
+                        }
+                    },
+                    // Method to fetch all friends request
+                    fetchAllPosts: function() {
+                        var self = this;
+                        let qbody = {
+                            email: this.userEmail,
+                        }
+                        url = './api.php/posts/fetch'
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.allPosts = data.results;
+                                    self.createComment(self.allPosts);
+                                    // for (i = 0; i < self.allPosts.length; i++) {
+                                    //     self.comments[i] = false;
+                                    //     self.commentBody[i] = "";
+                                    // }
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    // Method to like a post
+                    like: function(id, noOfLikes, like) {
+
+                        var self = this;
+                        let qbody = {};
+
+                        if (like == null) {
+                            url = './api.php/like';
+                            qbody = {
+                                email: this.userEmail,
+                                postid: id,
+                                count: parseInt(noOfLikes) + 1
+                            }
+                        } else {
+                            url = './api.php/unlike';
+                            qbody = {
+                                email: this.userEmail,
+                                postid: id,
+                                count: parseInt(noOfLikes) - 1
+                            }
+                        }
+
+                        fetch(url, {
+                                method: 'post',
+                                headers: {
+                                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+                                },
+                                body: JSON.stringify(qbody)
+                            })
+                            .then((response) => response.json())
+                            .then(function(data) {
+                                if (data.status == "Success") {
+                                    self.fetchAllPosts();
+                                    console.log(data)
+                                } else {
+                                    console.log(JSON.stringify(data));
+                                }
+                            })
+                            .catch(function(error) {
+                                console.log('Request failed', error);
+                            });
+                    },
+                    flipComments: function(index) {
+                        if (this.comments[index] == true) {
+                            Vue.set(this.comments, index, false);
+                        } else {
+                            Vue.set(this.comments, index, true);
+                        }
+                    },
+                    createComment: function(postArr) {
+                        // debugger
+                        for (post of postArr) {
+                            this.comments[post.postId] = false;
+                            this.commentBody[post.postId] = "";
+                            if (post.children.length > 0) {
+                                this.createComment(post.children)
+                            } else
+                                return;
+                        }
+                    }
+
+                },
+
+
+                mounted() {
+                    this.fetchFriendsRequest(),
+                        this.fetchAllPosts()
+                }
+            });
+        </script>
+</body>
+
+</html>
