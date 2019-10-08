@@ -45,7 +45,6 @@ if (isset($_SESSION['user'])) {
         <div class="mx-auto">
             <div class="row">
                 <div class="col-md-3">
-
                 </div>
                 <div class=" card col-md-6 py-5 mt-5">
                     <h3 class="text-center py-2">Sign up</h3>
@@ -117,19 +116,20 @@ if (isset($_SESSION['user'])) {
                 </div>
                 <div class="col=md-3">
                 </div>
-            </div>
+            </div> 
         </div>
     </div>
 </body>
 
 </html>
 <script>
-    
+
     // function to register a user
     function register() {
         dateArr = document.getElementById('dob').value.split("-")
         dateval = dateArr[2] + "/" + dateArr[1] + "/" + dateArr[0];
 
+        //hiding the error and sucess 
         document.getElementById('reg_err').style.display = 'none';
         document.getElementById('reg_succ').style.display = 'none';
 
@@ -153,6 +153,7 @@ if (isset($_SESSION['user'])) {
 
             url = './api.php'
 
+            // sending request to the server
             fetch(url, {
                     method: 'post',
                     headers: {
@@ -163,7 +164,6 @@ if (isset($_SESSION['user'])) {
                 .then((response) => response.json())
                 .then(function(data) {
                     if (data.status == "Success") {
-                        // console.log('', JSON.stringify(data));
                         document.getElementById('reg_succ').style.display = 'block';
                         setTimeout(function(){ location.reload(); }, 3000);
                     } else {
