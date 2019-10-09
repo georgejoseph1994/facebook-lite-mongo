@@ -21,7 +21,7 @@ switch($requestMethod){
         if($method=="signup"){
           register_user($body,$response );
         }
-        elseif($uri[3]=="login"){
+        elseif($method=="login"){
           login_user($body,$response );
         }
         elseif($uri[3]=="account"){

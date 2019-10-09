@@ -167,7 +167,7 @@ if (isset($_SESSION['user'])) {
                         document.getElementById('reg_succ').style.display = 'block';
                         setTimeout(function(){ location.reload(); }, 3000);
                     } else {
-                        console.log(JSON.stringify(data));
+                        // console.log(JSON.stringify(data));
                         document.getElementById('reg_err').style.display = 'block';
                     }
                 })
@@ -182,7 +182,7 @@ if (isset($_SESSION['user'])) {
                     }
 
                     document.getElementById('reg_err').style.display = 'block';
-                    console.log('Request failed', error);
+                    // console.log('Request failed', error);
                 });
         }
 
@@ -195,7 +195,7 @@ if (isset($_SESSION['user'])) {
      * Returns false if any invalid inputs
      */
     function validateRegisterUserInput() {
-        console.log("inside validate")
+        // console.log("inside validate")
 
         // Getting all the values from UI.
         email = document.getElementById('reg-email').value;
@@ -246,7 +246,6 @@ if (isset($_SESSION['user'])) {
         // Deleting all the existing error nodes from dom
         const myNode = document.getElementById("errorNode");
         while (myNode.lastChild) {
-            console.log("once")
             myNode.removeChild(myNode.lastChild);
         }
 
@@ -257,7 +256,6 @@ if (isset($_SESSION['user'])) {
             liElement.appendChild(txt);
             document.getElementById("errorNode").appendChild(liElement);
         }
-        console.log(errorList)
         //returning true or false
         if (errorList.length == 0)
             return true;

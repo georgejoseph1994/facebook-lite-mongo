@@ -1,169 +1,98 @@
 <?php
-//INCUDING THE MONGODB DRIVER VIA AUTOLOAD
 include_once("../app/vendor/autoload.php");
-
-// try {
-    
-//     $client = new MongoDB\Client("mongodb://mongo:27017");
-
-//     // $collection = $client->MyDB->MyUsersCollection;
-//     $collection = $client->test->mycollection;
-//     $document = $collection->findOne([
-//       'name' => 'John Doe'
-//     ]);
-//     echo "Display the first doc that matches the conditions<BR>";
-//     echo $document->Name . "<BR>";
-//     echo $document->name . "<BR>";
-
-//     $cursor = $collection->find([
-//       'username' => 'admin'
-//     ]);
-
-//     echo "Display all docs that matches the conditions<BR><BR>";
-//     foreach ($cursor as $d) {
-//       echo $d;
-//         echo $d->_id. " ". $d->username ." " .$d->name . "<BR>";
-//     }
-    
-// }
-// catch (MongoDB\Driver\Exception\Exception $e) {
-
-//     $filename = basename(__FILE__);
-
-//     echo "The $filename script has experienced an error.\n";
-//     echo "It failed with the following exception:\n";
-
-//     echo "Exception:", $e->getMessage(), "\n";
-//     echo "In file:", $e->getFile(), "\n";
-//     echo "On line:", $e->getLine(), "\n";
-// }
-
-
+/*
+*   Method to register a new user
+*/
 function register_user($body,$response ){
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
 
-try {
-    $client = new MongoDB\Client("mongodb://mongo:27017");
-    $collection = $client->facebook->member;
-    $insertOneResult = $collection->insertOne([
-        'email' => $body->email,
-        'full_name' => $body->full_name,
-        'screen_name' => $body->screen_name,
-        'dob' => $body->dob,
-        'gender' => $body->gender,
-        'status' => $body->status,
-        'location' => $body->location,
-        'visibility' => $body->visibility,
-        'password_hash' => password_hash($body->password, PASSWORD_DEFAULT),
-    ]);
-    $response->status = "Success";
-    $response->code = http_response_code(200);
-
-    $results = new stdClass();
-    $results->email = $body->email;
-    $results->full_name =  $body->full_name;
-    $results->screen_name = $body->screen_name;
-    $results->dob = $body->dob;
-    $results->gender = $body->gender;
-    $results->status = $body->status;
-    $results->location = $body->location;
-    $results->visibility = $body->visibility;
-    $_SESSION['user'] = $results;
-    
-}catch (Exception $e) {
-
-    $filename = basename(__FILE__);
-
-    echo "The $filename script has experienced an error.\n";
-    echo "It failed with the following exception:\n";
-
-    echo "Exception:", $e->getMessage(), "\n";
-    echo "In file:", $e->getFile(), "\n";
-    echo "On line:", $e->getLine(), "\n";
-    $response->code = http_response_code(400);
-    $response->status = "Error";
-    $response->errMsg = $e->getMessage();
-
-}
-
-
-    // //Establishing a connection to the database
-    // $conn = connect();
-
-    // $query =  "insert into \"User\" values (:email,:full_name,:screen_name, TO_DATE(:dob , 'DD/MM/YYYY'), :gender, :status, :location, :visibility ,:password)";
-    // $stid = oci_parse($conn, $query);
-    // oci_bind_by_name($stid, ':email', $body->email);
-    // oci_bind_by_name($stid, ':full_name', $body->full_name);
-    // oci_bind_by_name($stid, ':screen_name', $body->screen_name);
-    // oci_bind_by_name($stid, ':dob', $body->dob);
-    // oci_bind_by_name($stid, ':gender', $body->gender);
-    // oci_bind_by_name($stid, ':status', $body->status);
-    // oci_bind_by_name($stid, ':location', $body->location);
-    // oci_bind_by_name($stid, ':visibility', $body->visibility);
-    // oci_bind_by_name($stid, ':password', $body->password);
-    // $result = @oci_execute($stid);
-    // $result = oci_commit($conn);
-    // if (!$result ) {
-    //     $errorMessage = oci_error($stid);
-    //     $response->code = http_response_code(400);
-    //     $response->status = "Error";
-    //     $response->errorMessage = $errorMessage;
-    // }else{
-    //     $response->status = "Success";
-    //     $response->code = http_response_code(200);
-    // }
-    // oci_close($conn);
-}
-
-
-function login_user($body,$response ){
-    try{
-        //Establishing a connection to the database
-        $conn = connect();
-
-        $query = 'select EMAIL, FULL_NAME, SCREEN_NAME, TO_CHAR(DOB, \'YYYY-MM-DD\') as DOB  , GENDER, STATUS, LOCATION, VISIBILITY, PASSWORD_HASH from "User" where email=:email and password_hash=:password';
-
-        $stid = oci_parse($conn, $query);
-        oci_bind_by_name($stid, ':email', $body->email);
-        oci_bind_by_name($stid, ':password', $body->password);
-
-        $result = oci_execute($stid);
-        $nrows = oci_fetch_all($stid, $queryResults,null,null,OCI_FETCHSTATEMENT_BY_ROW);
-
+        $insertOneResult = $collection->insertOne([
+            'email' => $body->email,
+            'full_name' => $body->full_name,
+            'screen_name' => $body->screen_name,
+            'dob' => $body->dob,
+            'gender' => $body->gender,
+            'status' => $body->status,
+            'location' => $body->location,
+            'visibility' => $body->visibility,
+            'password_hash' => password_hash($body->password, PASSWORD_DEFAULT),
+        ]);
         
-        if (!$result || $nrows ==0 ) {
-            $errorMessage = oci_error($stid);
-            $response->status = "Error";
-            $response->code = http_response_code(200);
-            $response->errorMessage = $errorMessage;
-        }else{
-            $results = new stdClass();
-            $results->email = $queryResults[0]["EMAIL"];
-            $results->full_name = $queryResults[0]["FULL_NAME"];
-            $results->screen_name = $queryResults[0]["SCREEN_NAME"];
-            $results->dob = $queryResults[0]["DOB"];
-            $results->gender = $queryResults[0]["GENDER"];
-            $results->status = $queryResults[0]["STATUS"];
-            $results->location = $queryResults[0]["LOCATION"];
-            $results->visibility = $queryResults[0]["VISIBILITY"];
-            $results->password = $queryResults[0]["PASSWORD_HASH"];
-
-            $_SESSION['user'] = $results;
-            $response->status = "Success";
-            $response->code = http_response_code(200);
-            $response->result = $queryResults;
-        }
-        oci_close($conn);
-    }catch(Exception $e){
-        $errorMessage = oci_error($stid);
-        $response->status = "Error";
+        //Setting the response object
+        $response->status = "Success";
         $response->code = http_response_code(200);
-        $response->errorMessage = $errorMessage;
-        oci_close($conn);
+        
+        //Setting the results object for adding to the session
+        $results = new stdClass();
+        $results->email = $body->email;
+        $results->full_name =  $body->full_name;
+        $results->screen_name = $body->screen_name;
+        $results->dob = $body->dob;
+        $results->gender = $body->gender;
+        $results->status = $body->status;
+        $results->location = $body->location;
+        $results->visibility = $body->visibility;
+        $_SESSION['user'] = $results;
+        
+    }catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->code = http_response_code(400);
+        $response->status = "Error";
+        $response->errMsg = $e->getMessage();
     }
-    if($conn){
-        oci_close($conn);
+}
+
+/*
+*   Method to check if a users login credentials are correct for login
+*/
+function login_user($body,$response ){
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
+
+        $document = $collection->findOne([
+            'email' => $body->email,
+        ]);
+        if (password_verify($body->password, $document->password_hash)) {
+            //Setting the success response object
+            $response->status = "Success";
+            $response->code = 200;
+            http_response_code(200);
+
+            //Setting the results object for adding to the session
+            $results = new stdClass();
+            $results->email = $document->email;
+            $results->full_name =  $document->full_name;
+            $results->screen_name = $document->screen_name;
+            $results->dob = $document->dob;
+            $results->gender = $document->gender;
+            $results->status = $document->status;
+            $results->location = $document->location;
+            $results->visibility = $document->visibility;
+            $_SESSION['user'] = $results;
+        }else{
+            $response->status = "Error";
+            $response->code = 400;
+            http_response_code(400);
+        }
+    }catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->code = http_response_code(400);
+        $response->status = "Error";
+        $response->errMsg = $e->getMessage();
     }
-   
 }
 
 
@@ -570,7 +499,3 @@ function delete_user($body,$response ){
         oci_close($conn);
     }
 }
-
-
-
-?>
