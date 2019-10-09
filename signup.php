@@ -167,7 +167,6 @@ if (isset($_SESSION['user'])) {
                         document.getElementById('reg_succ').style.display = 'block';
                         setTimeout(function(){ location.reload(); }, 3000);
                     } else {
-                        // console.log(JSON.stringify(data));
                         document.getElementById('reg_err').style.display = 'block';
                     }
                 })
@@ -180,9 +179,7 @@ if (isset($_SESSION['user'])) {
                         liElement.appendChild(txt);
                         document.getElementById("errorNode").appendChild(liElement);
                     }
-
                     document.getElementById('reg_err').style.display = 'block';
-                    // console.log('Request failed', error);
                 });
         }
 
@@ -229,7 +226,7 @@ if (isset($_SESSION['user'])) {
             errorList.push("Passwords should be less than 15 charaters");
         }
 
-        // password validation
+        // Screen Name validation
         if (screen_name == "") {
             errorList.push("Screen name is required");
         } else if (screen_name.length < 6) {
@@ -238,7 +235,7 @@ if (isset($_SESSION['user'])) {
             errorList.push("Screen Name should be less than 15 charaters");
         }
 
-        // password validation
+        // Visibility validation
         if (visibility == "") {
             errorList.push("Visibility is required");
         }

@@ -1,7 +1,5 @@
 <?php
 session_start();
-//  session_destroy();
-echo json_encode($_SESSION['user']);
 if (!isset($_SESSION['user'])) {
     header('Location: login.php');
     exit;
@@ -62,34 +60,34 @@ if (!isset($_SESSION['user'])) {
                     <h2 class="text-center">My Account</h2>
                     <form >
                         <div class="form-group ">
-                            <label for="email">Email</label>
-                            <input type="email" id="reg-email" class="form-control" name="email" placeholder="Email *" value="<?php echo $_SESSION['user']->email ?>" required readonly />
+                            <label for="email">Email*</label>
+                            <input type="email" id="reg-email" class="form-control" name="email" value="<?php echo $_SESSION['user']->email ?>" required readonly />
                         </div>
 
                         <div class="form-group">
                             <label for="password">Password</label>
-                            <input type="password" name="password" id="reg-password" class="form-control" placeholder="Password *" required minlength="8" value="<?php echo $_SESSION['user']->password ?>" />
+                            <input type="password" name="password" id="reg-password" class="form-control"  required minlength="8" value="*************" />
                         </div>
 
                         <div class="form-group">
                             <label for="full_name">Full Name</label>
-                            <input type="text" name="full_name" id="fullName" class="form-control" placeholder="Full Name *" value="<?php echo $_SESSION['user']->full_name ?>" required />
+                            <input type="text" name="full_name" id="fullName" class="form-control"  value="<?php echo $_SESSION['user']->full_name ?>" required />
                         </div>
 
                         <div class="form-group">
-                            <label for="screen_name">Screen Name</label>
-                            <input type="text" name="screen_name" id="screen-name" class="form-control" placeholder="Screen Name *" value="<?php echo $_SESSION['user']->screen_name ?>" required minlength="8" />
+                            <label for="screen_name">Screen Name*</label>
+                            <input type="text" name="screen_name" id="screen-name" class="form-control"  value="<?php echo $_SESSION['user']->screen_name ?>" required minlength="8" />
                         </div>
 
                         <div class="form-group">
-                            <label for="dob">Date Of Birth</label>
-                            <input type="date" name="dob" id="dob" class="form-control" placeholder="Date of Birth *" value="<?php echo $_SESSION['user']->dob ?>" required />
+                            <label for="dob">Date Of Birth*</label>
+                            <input type="date" name="dob" id="dob" class="form-control"  value="<?php echo $_SESSION['user']->dob ?>" required />
                         </div>
 
                         <label for="gender">Gender</label>
                         <div class="input-group mb-3">
                             <select class="custom-select" name="gender" id="gender" required>
-                                <option value="">Gender *</option>
+                                <option value="">Gender</option>
                                 <option value="M" <?php if ($_SESSION['user']->gender == "M")  echo ' selected="selected"'; ?>>Male</option>
                                 <option value="F" <?php if ($_SESSION['user']->gender == "F")  echo ' selected="selected"'; ?>>Female</option>
                                 <option value="O" <?php if ($_SESSION['user']->gender == "O")  echo ' selected="selected"'; ?>>Other</option>
@@ -99,7 +97,7 @@ if (!isset($_SESSION['user'])) {
                         <label for="status">Status</label>
                         <div class="input-group mb-3">
                             <select class="custom-select" id="status" name="status" required>
-                                <option value="">Status *</option>
+                                <option value="">Status</option>
                                 <option value="S" <?php if ($_SESSION['user']->status == "S")  echo ' selected="selected"'; ?>>Single</option>
                                 <option value="M" <?php if ($_SESSION['user']->status == "M")  echo ' selected="selected"'; ?>>Married</option>
                                 <option value="I" <?php if ($_SESSION['user']->status == "I")  echo ' selected="selected"'; ?>>Its Complicated</option>
@@ -108,10 +106,10 @@ if (!isset($_SESSION['user'])) {
 
                         <div class="form-group">
                             <label for="location">Location</label>
-                            <input type="text" id="location" name="location" class="form-control" placeholder="Location *" value="<?php echo $_SESSION['user']->location ?>" required />
+                            <input type="text" id="location" name="location" class="form-control"  value="<?php echo $_SESSION['user']->location ?>" required />
                         </div>
 
-                        <label for="visibility">visibility</label>
+                        <label for="visibility">visibility *</label>
                         <div class="input-group mb-3">
                             <select class="custom-select" id="visibility" name="visibility" required>
                                 <option value="">Visibility *</option>
@@ -121,14 +119,16 @@ if (!isset($_SESSION['user'])) {
                             </select>
                         </div>
 
-                        <div class="form-group">
-                            <input class="btnSubmit btn btn-primary " onClick="update()" value="Update" />
+                        <div class="form-group text-center">
+                            <input type="button" class="btnSubmit btn btn-primary " onClick="update()" value="Update" />
                         </div>
                         <div class="alert alert-danger" id="reg_err" style="display:none" role="alert">
-                            Error. Invalid input data not updated.
+                            Error !!!
+                            <ul id="errorNode">
+                            </ul>
                         </div>
                         <div class="alert alert-primary" id="reg_succ" style="display:none" role="alert">
-                            Account details updated successfully.
+                            User details succesfully updated.
                         </div>
                     </form>
                 </div>
@@ -140,14 +140,23 @@ if (!isset($_SESSION['user'])) {
 
 </body>
 <script type="text/javascript">
+
+    /*
+    *   Method to send request to update user details.
+    */
     function update() {
         dateArr = document.getElementById('dob').value.split("-")
         dateval = dateArr[2] + "/" + dateArr[1] + "/" + dateArr[0];
-
+        
+        //hiding the error and sucess 
         document.getElementById('reg_err').style.display = 'none';
         document.getElementById('reg_succ').style.display = 'none';
 
+        // validating user input
+        let isValidInputs = validateRegisterUserInput();
+
         let qbody = {
+            method:"account/update",
             email: document.getElementById('reg-email').value,
             password: document.getElementById('reg-password').value,
             full_name: document.getElementById('fullName').value,
@@ -159,7 +168,7 @@ if (!isset($_SESSION['user'])) {
             visibility: document.getElementById('visibility').value
         }
 
-        url = './api.php/account/update'
+        url = './api.php'
 
         fetch(url, {
                 method: 'post',
@@ -171,20 +180,88 @@ if (!isset($_SESSION['user'])) {
             .then((response) => response.json())
             .then(function(data) {
                 if (data.status == "Success") {
-                    // console.log('', JSON.stringify(data));
                     document.getElementById('reg_succ').style.display = 'block';
-
+                    setTimeout(function(){ location.reload(); }, 3000);
                 } else {
-                    console.log(JSON.stringify(data));
-
                     document.getElementById('reg_err').style.display = 'block';
                 }
             })
             .catch(function(error) {
                 console.log('Request failed', error);
             });
+    }
 
-            // 
+    /*
+     * method to validate inputs
+     * Returns true if all inputs are valid
+     * Returns false if any invalid inputs
+     */
+    function validateRegisterUserInput() {
+
+        // Getting all the values from UI.
+        email = document.getElementById('reg-email').value;
+        password = document.getElementById('reg-password').value;
+        full_name = document.getElementById('fullName').value;
+        screen_name = document.getElementById('screen-name').value;
+        dob = dateval;
+        gender = document.getElementById('gender').value;
+        status = document.getElementById('status').value;
+        location1 = document.getElementById('location').value;
+        visibility = document.getElementById('visibility').value;
+
+        //defining a array for error statements
+        errorList = [];
+
+        //validation rules
+
+        // password validation
+        if(password != "*************"){
+
+            if(password == "") {
+                errorList.push("Password is required");
+            } else if (password.length < 8) {
+                errorList.push("Passwords should be at least 8 charaters");
+            } else if (password.length > 15) {
+                errorList.push("Passwords should be less than 15 charaters");
+            }
+
+        }
+        
+
+        // Screen Name validation
+        if (screen_name == "") {
+            errorList.push("Screen name is required");
+        } else if (screen_name.length < 6) {
+            errorList.push("Screen Name should be at least 6 charaters");
+        } else if (password.length > 15) {
+            errorList.push("Screen Name should be less than 15 charaters");
+        }
+
+        // Visibility validation
+        if (visibility == "") {
+            errorList.push("Visibility is required");
+        }
+
+        // Deleting all the existing error nodes from dom
+        const myNode = document.getElementById("errorNode");
+        while (myNode.lastChild) {
+            myNode.removeChild(myNode.lastChild);
+        }
+
+        // Injecting the errors to the dom
+        for (i = 0; i < errorList.length; i++) {
+            var liElement = document.createElement('li');
+            var txt = document.createTextNode(errorList[i])
+            liElement.appendChild(txt);
+            document.getElementById("errorNode").appendChild(liElement);
+        }
+        //returning true or false
+        if (errorList.length == 0)
+            return true;
+        else{
+            document.getElementById('reg_err').style.display = 'block';
+            return false;
+        }
     }
 </script>
 

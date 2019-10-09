@@ -24,10 +24,8 @@ switch($requestMethod){
         elseif($method=="login"){
           login_user($body,$response );
         }
-        elseif($uri[3]=="account"){
-          if($uri[4]=="update"){
+        elseif($method=="account/update"){
             update_user($body,$response);
-          }
         }
         elseif($uri[3]=="search"){
           search_user($body,$response,$_SESSION['user']->email);
