@@ -39,26 +39,14 @@ switch($requestMethod){
         elseif($method =="respondReq"){
           respond_friends_request($body,$response);
         }
-          // }elseif($uri[4]=="fetch"){
-          //   fetch_friends_request($body,$response);
-          // }elseif($uri[4]=="respond"){
-          //   respond_friends_request($body,$response);
-          // }
-        elseif($uri[3]=="posts"){
-          if($uri[4]=="create"){
+        elseif($method =="respondReq"){
+          respond_friends_request($body,$response);
+        }
+        elseif($method =="createPost"){
             create_post($body,$response);
-          }elseif($uri[4]=="fetch"){
-            fetch_post($body,$response);
-          }
         }
-        elseif($uri[3]=="like"){
-          like_post($body,$response);
-        }
-        elseif($uri[3]=="unlike"){
-          unlike_post($body,$response);
-        }
-        elseif($uri[3]=="deleteUser"){
-          delete_user($body,$response);
+        elseif($method == "fetchPost"){
+          fetch_post($body,$response);
         }
     }
     echo json_encode($response);

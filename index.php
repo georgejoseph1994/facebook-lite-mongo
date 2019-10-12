@@ -131,7 +131,7 @@ if (!isset($_SESSION['user'])) {
                             <textarea v-model="newPostBody" class="form-control mx-2" placeholder="Whats on your mind" aria-label="With textarea" maxlength="200"></textarea>
                         </div>
                         <div class="mt-2 mr-2">
-                            <input class="frndsButton btn btn-primary col-2 " value="Post" v-on:click="createPost(newPostBody,null,null)" :disabled=" newPostBody ==''" style="float:right" />
+                            <input type="button" class="frndsButton btn btn-primary col-2 " value="Post" v-on:click="createPost(newPostBody,null,null)" :disabled=" newPostBody ==''" style="float:right" />
                         </div>
                     </div>
 
@@ -139,14 +139,14 @@ if (!isset($_SESSION['user'])) {
                     <div>
                         <div v-for="(result, index) in allPosts" class="card mb-2 py-2">
                             <div class="pl-4">
-                                <p class="blueText mb-0"> {{ result.screenName }} </p>
+                                <p class="blueText mb-0"> {{ result.screen_name }} </p>
                                 <p class="greyText"> {{ result.timestamp.split(" ")[0] }} </p>
                             </div>
                             <div class="px-4 ">
-                                <p> {{ result.text }} </p>
+                                <p> {{ result.post_body }} </p>
                             </div>
                             <div class="px-4 ">
-                                <p class="greyText"> {{ result.noOfLikes }} Likes </p>
+                                <p class="greyText"> {{ result.likes.length }} Likes </p>
                             </div>
                             <!-- like and comment button -->
                             <hr class="mx-4 mt-0 mb-1">
@@ -428,14 +428,14 @@ if (!isset($_SESSION['user'])) {
                     createPost: function(body, parentId, rootParentId) {
                         if (body != "") {
                             var self = this;
+
                             let qbody = {
+                                method: "createPost",
                                 post_body: body,
                                 email: this.userEmail,
-                                post_parent_id: parentId,
-                                root_post_id: rootParentId
                             }
 
-                            url = './api.php/posts/create'
+                            url = './api.php'
                             fetch(url, {
                                     method: 'post',
                                     headers: {
@@ -463,9 +463,10 @@ if (!isset($_SESSION['user'])) {
                     fetchAllPosts: function() {
                         var self = this;
                         let qbody = {
+                            method:"fetchPost",
                             email: this.userEmail,
                         }
-                        url = './api.php/posts/fetch'
+                        url = './api.php'
                         fetch(url, {
                                 method: 'post',
                                 headers: {
@@ -476,8 +477,21 @@ if (!isset($_SESSION['user'])) {
                             .then((response) => response.json())
                             .then(function(data) {
                                 if (data.status == "Success") {
-                                    self.allPosts = data.results;
-                                    self.createComment(self.allPosts);
+                                    /*
+                                    * Sorting the posts - newer post first
+                                    */
+                                    self.allPosts = (data.postlist).sort((a,b)=>{
+                                        if(b.timestamp < a.timestamp){
+                                            return -1;
+                                        }else if(b.timestamp < a.timestamp){
+                                            return 1;
+                                        }else {
+                                            return 0;
+                                        }
+                                    });
+                                    // self.createComment(self.allPosts);
+                                   
+                                   
                                     // for (i = 0; i < self.allPosts.length; i++) {
                                     //     self.comments[i] = false;
                                     //     self.commentBody[i] = "";
@@ -555,8 +569,8 @@ if (!isset($_SESSION['user'])) {
                 },
 
                 mounted() {
-                    this.fetchFriendsRequest()
-                    // this.fetchAllPosts()
+                    this.fetchFriendsRequest(),
+                    this.fetchAllPosts()
                 }
             });
         </script>

@@ -335,92 +335,101 @@ function respond_friends_request($body, $response)
 // Method to send request to a user
 function create_post($body, $response)
 {
-    // // Establishing a connection to the database
-    $conn = connect();
-    if ($body->root_post_id == null && $body->post_parent_id == null) {
-        $query =  "INSERT INTO POST_RESPONSE (POSTRESPONSEID,BODY,LIKECOUNT,USER_EMAIL,POST_PARENT_ID,ROOT_PARENT_ID) VALUES(SEQ_POSTID.NEXTVAL, '" . $body->post_body . "',0, '" . $body->email . "',NULL,NULL)";
-    } else {
-        $query =  "INSERT INTO POST_RESPONSE (POSTRESPONSEID,BODY,LIKECOUNT,USER_EMAIL,POST_PARENT_ID,ROOT_PARENT_ID) VALUES(SEQ_POSTID.NEXTVAL, '" . $body->post_body . "',0, '" . $body->email . "','" . $body->post_parent_id . "','" . $body->root_post_id . "')";
-    }
-    // $query =  "INSERT INTO POST_RESPONSE (POSTRESPONSEID,BODY,LIKECOUNT,USER_EMAIL,POST_PARENT_ID,ROOT_PARENT_ID) VALUES(SEQ_POSTID.NEXTVAL, '". $body->post_body ."',0, '".$body->email."',".$body->post_parent_id.",".$body->root_post_id.")";
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->posts;
 
+        $insertOneResult = $collection->insertOne([
+            'post_body' => $body->post_body,
+            'email' => $body->email,
+            'timestamp' => date('Y-m-d H:i:s'),
+            'likes'=> [],
+            'comment' =>[]
+        ]);
 
-    $stid = oci_parse($conn, $query);
-
-    oci_execute($stid);
-    $ncols = oci_num_rows($stid);
-    $result = oci_commit($conn);
-    $errorMessage = oci_error($stid);
-
-    if ($errorMessage || $ncols == 0) {
-        $response->errorMessage = $errorMessage;
-        $response->code = http_response_code(200);
-        $response->status = "Error";
-    } else {
+        //Setting the response object
         $response->status = "Success";
-        $response->code = http_response_code(200);
+        $response->code = 200;
+        http_response_code(200);
+
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->code = http_response_code(400);
+        $response->status = "Error";
+        $response->errMsg = $e->getMessage();
     }
-    oci_close($conn);
 }
 
 
 // Method to fetch_all_post
 function fetch_post($body, $response)
 {
-    // Establishing a connection to the database
-    $conn = connect();
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
+       
+        $cursor = $collection->find([
+            'visibility' => 'E'
+        ]);
 
-    $query = "SELECT PR.POSTRESPONSEID, PR.BODY, PR.TIMESTAMP, PR.USER_EMAIL, U.SCREEN_NAME, PR.POST_PARENT_ID, PR.ROOT_PARENT_ID, PR.LIKECOUNT, "
-        . "L.USER_EMAIL AS LIKED "
-        . "FROM  "
-        . "POST_RESPONSE PR LEFT OUTER JOIN LIKES L "
-        . "ON L.POSTID = PR.POSTRESPONSEID "
-        . "AND L.USER_EMAIL = :email "
-        . "LEFT OUTER JOIN \"User\" U "
-        . "ON PR.USER_EMAIL = U.EMAIL "
-        . "WHERE PR.POSTRESPONSEID IN ( "
-        . "SELECT POSTRESPONSEID  "
-        . "FROM POST_RESPONSE  "
-        . "WHERE USER_EMAIL = :email "
-        . "OR "
-        . "USER_EMAIL IN ( "
-        . "    SELECT EMAIL FROM \"User\" WHERE VISIBILITY ='E' UNION "
-        . "    SELECT USER_EMAIL_A FROM FRIENDSHIP_GRAPH WHERE USER_EMAIL_B =:email UNION "
-        . "    SELECT USER_EMAIL_B FROM FRIENDSHIP_GRAPH WHERE USER_EMAIL_A =:email UNION "
-        . "    SELECT EMAIL FROM \"User\" WHERE VISIBILITY ='P') "
-        . ") "
-        . "OR "
-        . "PR.ROOT_PARENT_ID IN ( "
-        . "SELECT POSTRESPONSEID  "
-        . "FROM POST_RESPONSE  "
-        . "WHERE USER_EMAIL = :email "
-        . "OR "
-        . "USER_EMAIL IN ( "
-        . "SELECT EMAIL FROM \"User\" WHERE VISIBILITY ='E' UNION "
-        . "SELECT USER_EMAIL_A FROM FRIENDSHIP_GRAPH WHERE USER_EMAIL_B =:email UNION "
-        . "SELECT USER_EMAIL_B FROM FRIENDSHIP_GRAPH WHERE USER_EMAIL_A =:email UNION "
-        . "SELECT EMAIL FROM \"User\" WHERE VISIBILITY ='P') "
-        . ") "
-        . "ORDER BY PR.TIMESTAMP DESC ";
+        $userlist=[];
+        $userAssociativeArr=[];
+        foreach ($cursor as $user) {
+            if($user->email == $body->email){
+                foreach($user->friendships as $friends){
+                    if( !in_array($friends->email,$userlist)){
+                        array_push($userlist, $friends->email );
+                        $userAssociativeArr[$friends->email]=$friends->screen_name;
+                    }
+                }
+                array_push($userlist, $user->email);
+                $userAssociativeArr[$user->email]=$user->screen_name;
+            }else{
+                if(!in_array($user->email,$userlist)){
+                    array_push($userlist, $user->email);
+                    $userAssociativeArr[$user->email]=$user->screen_name;
+                }
+            }
+           
+        };
 
-    $stid = oci_parse($conn, $query);
+        $postCollection = $client->facebook->posts;
 
-    oci_bind_by_name($stid, ':email', $body->email);
+        $cursor = $postCollection->find([
+            'email' => [
+                '$in' => $userlist
+            ]
+        ]);
+        $postlist = [];
+        foreach ($cursor as $post) {
+            $post->screen_name=$userAssociativeArr[$post->email];
+            array_push($postlist, $post);
+        }
 
-    @oci_execute($stid);
-    $nrows = oci_fetch_all($stid, $queryResults, null, null, OCI_FETCHSTATEMENT_BY_ROW);
-    $result = oci_commit($conn);
-    $errorMessage = oci_error($stid);
-    if ($errorMessage) {
-        $response->code = http_response_code(200);
-        $response->status = "Error";
-        $response->errorMessage = $errorMessage;
-    } else {
+        // $response->arr=$userAssociativeArr;
+        $response->postlist=$postlist;
+        // $response->userlist=$userlist;
         $response->status = "Success";
-        $response->code = http_response_code(200);
-        $response->results = createPostTree($queryResults, null);
+        $response->code = 200;
+        http_response_code(200);
+
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->status = "Error";
+        $response->code = 400;
+        http_response_code(400);
+        $response->errMsg = $e->getMessage();
     }
-    oci_close($conn);
 }
 
 
@@ -450,39 +459,37 @@ function createPostTree($array, $postParentId)
 // Method to like
 function like_post($body, $response)
 {
-    // Establishing a connection to the database
     try {
-        $conn = connect();
-
-        $query =  "BEGIN INSERT INTO LIKES (POSTID,USER_EMAIL) VALUES(:postid, :email ); UPDATE post_response SET LIKECOUNT = :count WHERE POSTRESPONSEID= :postid; END;";
-
-
-        $stid = oci_parse($conn, $query);
-        oci_bind_by_name($stid, ':email', $body->email);
-        oci_bind_by_name($stid, ':postid', $body->postid);
-        oci_bind_by_name($stid, ':count', $body->count);
-
-        oci_execute($stid);
-        $ncols = oci_num_rows($stid);
-        $result = oci_commit($conn);
-
-        $errorMessage = oci_error($stid);
-
-        if ($errorMessage || $ncols == 0) {
-            $response->errorMessage = $errorMessage;
-            $response->code = http_response_code(200);
-            $response->status = "Error";
-        } else {
-            $response->status = "Success";
-            $response->code = http_response_code(200);
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->posts;
+        if($body->status1=="S"){
+            $collection->updateOne(
+                ['email' => $body->user_email_a],
+                [
+                    '$addToSet' => [
+                        'friendships' => [
+                            'email' => $body->user_email_b,
+                            'screen_name' => $body->screen_name_b,
+                            'status' => 'S'
+                        ]
+                    ]
+                ]
+            );
         }
-    } catch (exeption $e) {
+        $response->status = "Success";
+        $response->code = 200;
+        http_response_code(200);
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
         $response->status = "Error";
-        $response->errorMessage = $e;
-        oci_close($conn);
-    }
-    if ($conn) {
-        oci_close($conn);
+        $response->code = 400;
+        http_response_code(400);
+        $response->errMsg = $e->getMessage();
     }
 }
 
