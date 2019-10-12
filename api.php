@@ -27,18 +27,23 @@ switch($requestMethod){
         elseif($method=="account/update"){
             update_user($body,$response);
         }
-        elseif($uri[3]=="search"){
-          search_user($body,$response,$_SESSION['user']->email);
+        elseif($method=="search"){
+          search_user($body,$response);
         }
-        elseif($uri[3]=="friends"){
-          if($uri[4]=="send"){
-            send_friends_request($body,$response);
-          }elseif($uri[4]=="fetch"){
-            fetch_friends_request($body,$response);
-          }elseif($uri[4]=="respond"){
-            respond_friends_request($body,$response);
-          }
+        elseif($method=="sendReq"){
+          send_friends_request($body,$response);
         }
+        elseif($method =="fetchFriendships"){
+          fetch_friendships($body,$response);
+        }
+        elseif($method =="respondReq"){
+          respond_friends_request($body,$response);
+        }
+          // }elseif($uri[4]=="fetch"){
+          //   fetch_friends_request($body,$response);
+          // }elseif($uri[4]=="respond"){
+          //   respond_friends_request($body,$response);
+          // }
         elseif($uri[3]=="posts"){
           if($uri[4]=="create"){
             create_post($body,$response);

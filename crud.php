@@ -18,6 +18,7 @@ function register_user($body, $response)
             'status' => $body->status,
             'location' => $body->location,
             'visibility' => $body->visibility,
+            'friendships' => [],
             'password_hash' => password_hash($body->password, PASSWORD_DEFAULT),
         ]);
 
@@ -163,38 +164,47 @@ function update_user($body, $response)
 }
 
 
-// Method to search a users details and return the friendhsip graph with those users
-function search_user($body, $response, $email)
+/*
+* Method to search a users details and return the friendhsip graph with those users
+*/
+function search_user($body, $response)
 {
-    //Establishing a connection to the database
-    $conn = connect();
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
 
-    $str = strtoupper($body->search);
-    // $query = "SELECT EMAIL, SCREEN_NAME FROM \"User\" WHERE UPPER(EMAIL) LIKE '%". $str."%' OR UPPER(SCREEN_NAME) LIKE '%". $str."%' OR UPPER(FULL_NAME) LIKE '%". $str."%' ORDER BY UTL_MATCH.EDIT_DISTANCE('. $str. ' , UPPER(SCREEN_NAME ) ) FETCH NEXT 10 ROWS ONLY";
-    $query = "SELECT EMAIL,SCREEN_NAME,USER_EMAIL_A,USER_EMAIL_B,FRIENDSHIP_GRAPH.STATUS AS FRIENDSHIP_STATUS, START_DATE " .
-        "FROM \"User\" LEFT OUTER JOIN FRIENDSHIP_GRAPH " .
-        "ON ( ( EMAIL= USER_EMAIL_A AND USER_EMAIL_B = '" . $email . "' ) OR ( EMAIL = USER_EMAIL_B AND USER_EMAIL_A = '" . $email . "')) " .
-        "WHERE  " .
-        "(UPPER(EMAIL) LIKE '%" . $str . "%' OR " .
-        "UPPER(SCREEN_NAME) LIKE '%" . $str . "%' OR " .
-        "UPPER(FULL_NAME) LIKE '%" . $str . "%') " .
-        "ORDER BY UTL_MATCH.EDIT_DISTANCE( '%" . $str . "%' , UPPER(SCREEN_NAME) ) FETCH NEXT 10 ROWS ONLY";
-    $stid = oci_parse($conn, $query);
+        //Getting the list of users similar to the search
+        $regex = new MongoDB\BSON\Regex('^' . $body->search);
+        $cursor = $collection->find([
+            'screen_name' => $regex
+        ]);
+        $response->users = [];
 
-    $result = @oci_execute($stid);
-    $nrows = oci_fetch_all($stid, $queryResults, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+        foreach ($cursor as $user) {
+            if ($user->visibility != "P") {
+                $temp = new StdClass();
+                $temp->email = $user->email;
+                $temp->screen_name = $user->screen_name;
+                $temp->friendships = $user->friendships;
+                array_push($response->users, $temp);
+            }
+        };
 
-    if (!$result) {
-        $errorMessage = oci_error($stid);
-        $response->code = http_response_code(200);
-        $response->status = "Error";
-        $response->errorMessage = $errorMessage;
-    } else {
         $response->status = "Success";
-        $response->code = http_response_code(200);
-        $response->results = $queryResults;
+        $response->code = 200;
+        http_response_code(200);
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->status = "Error";
+        $response->code = 400;
+        http_response_code(400);
+        $response->errMsg = $e->getMessage();
     }
-    oci_close($conn);
 }
 
 
@@ -202,90 +212,124 @@ function search_user($body, $response, $email)
 function send_friends_request($body, $response)
 {
     try {
-        // // Establishing a connection to the database
-        $conn = connect();
-
-        $query =  "INSERT INTO FRIENDSHIP_GRAPH VALUES ( :user_email_a , :user_email_b, :status1 ,null)";
-        $stid = oci_parse($conn, $query);
-
-        oci_bind_by_name($stid, ':user_email_a', $body->user_email_a);
-        oci_bind_by_name($stid, ':user_email_b', $body->user_email_b);
-        oci_bind_by_name($stid, ':status1', $body->status1);
-
-        oci_execute($stid);
-        $ncols = oci_num_rows($stid);
-        $result = oci_commit($conn);
-        $errorMessage = oci_error($stid);
-        if ($ncols == 0) {
-            $response->code = http_response_code(200);
-            $response->status = "Error";
-            $response->errorMessage = $errorMessage;;
-        } else {
-            $response->status = "Success";
-            $response->code = http_response_code(200);
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
+        if($body->status1=="S"){
+            $collection->updateOne(
+                ['email' => $body->user_email_a],
+                [
+                    '$addToSet' => [
+                        'friendships' => [
+                            'email' => $body->user_email_b,
+                            'screen_name' => $body->screen_name_b,
+                            'status' => 'S'
+                        ]
+                    ]
+                ]
+            );
+    
+            $collection->updateOne(
+                ['email' => $body->user_email_b],
+                [
+                    '$addToSet' => [
+                        'friendships' => [
+                            'email' => $body->user_email_a,
+                            'screen_name' => $body->screen_name_a,
+                            'status' => 'R'
+                        ]
+                    ]
+                ]
+            );
         }
-        oci_close($conn);
+        $response->status = "Success";
+        $response->code = 200;
+        http_response_code(200);
     } catch (Exception $e) {
-        $response->code = http_response_code(200);
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
         $response->status = "Error";
-        $response->errorMessage = $errorMessage;
-        oci_close($conn);
-    }
-    if ($conn) {
-        oci_close($conn);
+        $response->code = 400;
+        http_response_code(400);
+        $response->errMsg = $e->getMessage();
     }
 }
 
 
 // Method to fetch_friends_request
-function fetch_friends_request($body, $response)
+function fetch_friendships($body, $response)
 {
-    // // Establishing a connection to the database
-    $conn = connect();
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
 
-    $query = 'SELECT SCREEN_NAME,EMAIL FROM "User" JOIN FRIENDSHIP_GRAPH ON EMAIL=USER_EMAIL_A WHERE USER_EMAIL_B = \'' . $body->email . '\'  AND FRIENDSHIP_GRAPH.STATUS = \'S\' ';
-    $stid = oci_parse($conn, $query);
-
-    // oci_bind_by_name($stid, ':email', $body->user_email_a);
-
-    @oci_execute($stid);
-    $nrows = oci_fetch_all($stid, $queryResults, null, null, OCI_FETCHSTATEMENT_BY_ROW);
-    $result = oci_commit($conn);
-    $errorMessage = oci_error($stid);
-    if ($errorMessage) {
-        $response->code = http_response_code(200);
-        $response->status = "Error";
-        $response->errorMessage = $errorMessage;
-    } else {
+        $document = $collection->findOne([
+            'email' => $body->email,
+        ]);
         $response->status = "Success";
-        $response->code = http_response_code(200);
-        $response->results = $queryResults;
+        $response->code = 200;
+        http_response_code(200);
+        $response->results = $document->friendships;
+
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->code = http_response_code(400);
+        $response->status = "Error";
+        $response->errMsg = $e->getMessage();
     }
-    oci_close($conn);
 }
 
 // Method to send request to a user
 function respond_friends_request($body, $response)
 {
-    // Establishing a connection to the database
-    $conn = connect();
-
-    $query =  "UPDATE FRIENDSHIP_GRAPH SET STATUS='" . $body->status . "' WHERE USER_EMAIL_A = '" .  $body->user_email_a . "' AND  USER_EMAIL_B = '" .  $body->user_email_b . "'";
-    $stid = oci_parse($conn, $query);
-
-    @oci_execute($stid);
-    $ncols = oci_num_rows($stid);
-    $result = oci_commit($conn);
-    if ($ncols == 0) {
-        $errorMessage = oci_error($stid);
-        $response->code = http_response_code(200);
-        $response->status = "Error";
-        $response->errorMessage = $errorMessage;
-    } else {
+    try {
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->member;
+        if($body->status=="A" || $body->status=="N"){
+            $collection->updateOne(
+                ['email' => $body->user_email_a, 'friendships.email' => $body->user_email_b],
+                [
+                    '$set' =>
+                    [
+                        'friendships.$.status' => $body->status,
+                    ]
+                ]
+            );
+            $collection->updateOne(
+                ['email' => $body->user_email_b, 'friendships.email' => $body->user_email_a],
+                [
+                    '$set' =>
+                    [
+                        'friendships.$.status' => $body->status,
+                    ]
+                ]
+            );
+        }
+        //Setting the response object
         $response->status = "Success";
-        $response->code = http_response_code(200);
+        $response->code = 200;
+        http_response_code(200);
+        
+    } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
+        $response->code = 400;
+        http_response_code(400);
+        $response->status = "Error";
+        $response->errMsg = $e->getMessage();
     }
-    oci_close($conn);
 }
 
 // Method to send request to a user

@@ -98,14 +98,15 @@ if (!isset($_SESSION['user'])) {
     .whitebtn:hover {
         color: #4267B2 !important;
     }
+    [v-cloak] { display:none; }
 </style>
 
-<body>
-    <div id="app">
+<body >
+    <div id="app" v-cloak>
 
         <nav class="navbar navbar-expand-lg navbar-light bg-light fbl-nav">
             <a href="./index.php"><img src="./assets/facebook-1.svg" style="max-height:45px;padding-left:100px"></a>
-            <a href="./logout.php"> <input class="logout-btn  btn" onClick="logout()" value="Logout" /></a>
+            <a  href="./logout.php"> <input type="button" class="logout-btn  btn" onClick="logout()" value="Logout" /></a>
         </nav>
 
         <div>
@@ -229,30 +230,33 @@ if (!isset($_SESSION['user'])) {
                             <div class="form-group px-4 row ">
                                 <input type="text" v-model="search" class="form-control mt-2 col-8" placeholder="Search users">
                                 <div class="col-1"></div>
-                                <input class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " value="search" v-on:click="searchUser" style="float:right;min-width:70px"/>
+                                <input class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " type="button" value="search" v-on:click="searchUser" style="float:right;min-width:70px"/>
                             </div>
                             <!-- {{searchResult}} -->
                             <ul id="incomingReq">
-                                <li v-for="(item, index) in incommingFriendsReq" class="card friends-list pl-2 pt-3 mr-4 row" style="">
-                                    <div class="col-6">
-                                        {{ item.SCREEN_NAME }}
+                                <li v-for="(item, index) in incommingFriendsReq" class="card friends-list pl-2  mr-4 row" style="">
+                                    <div class="col-4 pt-3">
+                                        {{ item.screen_name }}
                                     </div>
-                                    <div class="col-6">
-                                        <button class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " v-on:click="respondToFriendsRequest(item.EMAIL,'A')">Accept</button>
-                                        <button class="btnSubmit frndsButton btn btn-primary col-2 mt-2 ml-0 " v-on:click="respondToFriendsRequest(item.EMAIL,'R')">Reject</button>
+                                    <div class="col-8 row pt-1">
+                                        <button class="btnSubmit frndsButton btn btn-primary mt-2 ml-0 mr-2" v-on:click="respondToFriendsRequest(item.email,'A')">Accept</button>
+                                        <button class="btnSubmit frndsButton btn btn-primary mt-2 ml-0 " v-on:click="respondToFriendsRequest(item.email,'N')">Reject</button>
                                     </div>
                                 </li>
                             </ul>
                             <!-- {{searchResult}} -->
                             <ul id="searchFriends">
-                                <li v-for="(result, index) in searchResult" class="card friends-list pl-2 pt-3 mr-4 row" style="">
+                                <li v-for="(user, index) in searchResult" class="card friends-list pl-2 pt-3 mr-4 row" style="" v-if=" friendStatus(user.friendships,userEmail)!='received'">
                                     <div class="col-6">
-                                        {{ result.SCREEN_NAME }}
+                                        {{ user.screen_name }}
                                     </div>
                                     <div class="col-6">
-                                        <button v-if="result.FRIENDSHIP_STATUS == null" v-on:click="sendFriendsRequest(result.EMAIL)" class="btn btn-secondary frndsButton">Add</button>
-                                        <button v-if="result.FRIENDSHIP_STATUS == 'S' && result.USER_EMAIL_B == '<?php echo ($_SESSION['user']->email) ?>'" class=" btn btn-secondary frndsButton ">Reject</button>
-                                        <button v-if="result.FRIENDSHIP_STATUS == 'S' && result.USER_EMAIL_A == '<?php echo ($_SESSION['user']->email) ?>'" class="btn btn-secondary frndsButton ">Pending</button>
+                                    <!-- v-on:click="sendFriendsRequest(result.EMAIL)" -->
+                                        <button v-if="friendStatus(user.friendships,userEmail)=='not friend'" v-on:click="sendFriendsRequest(user.email,user.screen_name)" class="btn btn-secondary frndsButton">Add</button>
+                                        <button v-if="friendStatus(user.friendships,userEmail)=='received'" class=" btn btn-secondary frndsButton ">Reject</button>
+                                        <button v-if="friendStatus(user.friendships,userEmail)=='pending'" class="btn btn-secondary frndsButton ">Pending</button> 
+                                        <button v-if="friendStatus(user.friendships,userEmail)=='rejected'" class="btn btn-secondary frndsButton ">Rejected</button> 
+                                        <!-- <button v-if="friendStatus(user.friendships,userEmail)=='friend'" class="btn btn-secondary frndsButton ">Friend</button>  -->
                                     </div>
                                 </li>
                             </ul>
@@ -271,6 +275,7 @@ if (!isset($_SESSION['user'])) {
                         search: '',
                         searchResult: [],
                         userEmail: "<?php echo ($_SESSION['user']->email) ?>",
+                        userScreenName: "<?php echo ($_SESSION['user']->screen_name) ?>",
                         incommingFriendsReq: [],
                         newPostBody: "",
                         allPosts: [],
@@ -280,14 +285,32 @@ if (!isset($_SESSION['user'])) {
                 },
 
                 methods: {
+                    friendStatus:function(friendShipArr,userEmail){
+                        filteredFriendshipArr = friendShipArr.filter((frnd)=>{
+                            return (frnd.email==userEmail)
+                        });
+                        if(filteredFriendshipArr.length==0){
+                            return "not friend";
+                        }else if(filteredFriendshipArr[0].status=="R"){
+                            return "pending";
+                        }else if(filteredFriendshipArr[0].status=="N"){
+                            return "rejected";
+                        }else if(filteredFriendshipArr[0].status=="A"){
+                            return "friend";
+                        }
+                        else{
+                            return "received";
+                        }
+                    },
                     // Method to search users according to a search string
                     searchUser: function() {
                         var self = this;
                         let qbody = {
+                            method:'search',
                             search: this.search,
                         }
 
-                        url = './api.php/search'
+                        url = './api.php'
                         fetch(url, {
                                 method: 'post',
                                 headers: {
@@ -298,8 +321,9 @@ if (!isset($_SESSION['user'])) {
                             .then((response) => response.json())
                             .then(function(data) {
                                 if (data.status == "Success") {
-                                    self.searchResult = data.results;
-                                    console.log(data)
+                                    self.searchResult = data.users.filter((users)=>{
+                                        return(users.email!=self.userEmail);
+                                    });
                                 } else {
                                     console.log(JSON.stringify(data));
                                 }
@@ -309,15 +333,18 @@ if (!isset($_SESSION['user'])) {
                             });
                     },
                     // Method to send a friends request
-                    sendFriendsRequest: function(email) {
+                    sendFriendsRequest: function(email,screen_name) {
                         var self = this;
                         let qbody = {
+                            method:"sendReq",
+                            screen_name_a: this.userScreenName,
+                            screen_name_b:screen_name,
                             user_email_a: this.userEmail,
                             user_email_b: email,
                             status1: 'S',
                         }
 
-                        url = './api.php/friends/send'
+                        url = './api.php';
                         fetch(url, {
                                 method: 'post',
                                 headers: {
@@ -329,7 +356,6 @@ if (!isset($_SESSION['user'])) {
                             .then(function(data) {
                                 if (data.status == "Success") {
                                     self.searchUser()
-                                    console.log(data)
                                 } else {
                                     console.log(JSON.stringify(data));
                                 }
@@ -343,9 +369,10 @@ if (!isset($_SESSION['user'])) {
                         var self = this;
                         self.incommingFriendsReq = [];
                         let qbody = {
+                            method:"fetchFriendships",
                             email: this.userEmail,
                         }
-                        url = './api.php/friends/fetch'
+                        url = './api.php'
                         fetch(url, {
                                 method: 'post',
                                 headers: {
@@ -356,8 +383,9 @@ if (!isset($_SESSION['user'])) {
                             .then((response) => response.json())
                             .then(function(data) {
                                 if (data.status == "Success") {
-                                    self.incommingFriendsReq = data.results;
-                                    console.log(data)
+                                    self.incommingFriendsReq = data.results.filter((frnd)=>{
+                                        return (frnd.status == "R")
+                                    });
                                 } else {
                                     console.log(JSON.stringify(data));
                                 }
@@ -370,12 +398,13 @@ if (!isset($_SESSION['user'])) {
                     respondToFriendsRequest: function(email, status) {
                         var self = this;
                         let qbody = {
+                            method:"respondReq",
                             user_email_a: email,
                             user_email_b: this.userEmail,
                             status: status,
                         }
 
-                        url = './api.php/friends/respond'
+                        url = './api.php'
                         fetch(url, {
                                 method: 'post',
                                 headers: {
@@ -387,7 +416,6 @@ if (!isset($_SESSION['user'])) {
                             .then(function(data) {
                                 if (data.status == "Success") {
                                     self.fetchFriendsRequest();
-                                    console.log(data)
                                 } else {
                                     console.log(JSON.stringify(data));
                                 }
@@ -526,10 +554,9 @@ if (!isset($_SESSION['user'])) {
 
                 },
 
-
                 mounted() {
-                    this.fetchFriendsRequest(),
-                        this.fetchAllPosts()
+                    this.fetchFriendsRequest()
+                    // this.fetchAllPosts()
                 }
             });
         </script>
