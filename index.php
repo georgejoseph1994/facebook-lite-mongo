@@ -151,71 +151,71 @@ if (!isset($_SESSION['user'])) {
                             <!-- like and comment button -->
                             <hr class="mx-4 mt-0 mb-1">
                             <div class="row">
-                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(result.postId, result.noOfLikes, result.like )" v-if="result.like == null">Like</div>
-                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(result.postId, result.noOfLikes, result.like )" v-if="result.like != null">Unlike</div>
+                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="firstLevelUpdate(index, 'like')" v-if="result.likes.indexOf(userEmail) < 0">Like</div>
+                                <div class="col-5  whitebtn likeBtn text-right" v-on:click="firstLevelUpdate(index, 'unLike')" v-if="result.likes.indexOf(userEmail) > -1">Unlike</div>
                                 <div class="col-2"></div>
-                                <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(result.postId)">Comment</div>
+                                <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(index,null)">Comment</div>
                             </div>
                             <hr class="mx-4 mb-4 mt-1">
                             <!-- comment box -->
-                            <div v-if="comments[result.postId] == true">
+                            <div v-if="comments[index] == true">
                                 <div class="input-group pl-3 pr-3">
-                                    <textarea v-model=commentBody[result.postId] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
+                                    <textarea v-model=commentBody[index] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
                                 </div>
                                 <div class="mt-2 mr-2 pr-3">
-                                    <input class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="createPost(commentBody[result.postId],result.postId, result.postId)" :disabled=" commentBody[result.postId] ==''" style="float:right" />
+                                    <input type="button" class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="firstLevelUpdate(index,'comment')" :disabled=" typeof commentBody[index]=== 'undefined' || commentBody[index] ==''" style="float:right" />
                                 </div>
                             </div>
                             <!-- {{commentBody}} -->
                             <!-- Comments -->
-                            <div v-for="(comment, index1) in result.children" class="mb-2 px-5 py-1">
+                            <div v-for="(comment, index1) in result.comment" class="mb-2 px-5 py-1">
                                 <div class="pl-4">
-                                    <p class="blueText mb-0"> {{ comment.screenName }} </p>
+                                    <p class="blueText mb-0"> {{ comment.screen_name }} </p>
                                     <p class="greyText mb-0"> {{ comment.timestamp.split(" ")[0] }} </p>
                                 </div>
                                 <div class="px-4 py-0 mb-0">
-                                    <p class="mb-0"> {{ comment.text }} </p>
+                                    <p class="mb-0"> {{ comment.post_body }} </p>
                                 </div>
                                 <div class="px-4 py-0 mb-0">
-                                    <p class="greyText py-0 mb-0"> {{ comment.noOfLikes }} Likes </p>
-                                </div>
+                                    <p class="greyText py-0 mb-0"> {{ comment.likes?comment.likes.length:0 }} Likes </p>
+                                </div> 
                                 <!-- like and comment button -->
                                 <hr class="mx-4 mt-0 mb-1">
-                                <div class="row">
-                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(comment.postId, comment.noOfLikes, comment.like )" v-if="comment.like == null">Like</div>
-                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(comment.postId, comment.noOfLikes, comment.like )" v-if="comment.like != null">Unlike</div>
+                                 <div class="row">
+                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="secondLevelUpdate(index,index1,'like')" v-if="comment.likes.indexOf(userEmail) < 0">Like</div>
+                                    <div class="col-5  whitebtn likeBtn text-right" v-on:click="secondLevelUpdate(index,index1,'unLike')" v-if="comment.likes.indexOf(userEmail) > -1">Unlike</div>
                                     <div class="col-2"></div>
-                                    <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(comment.postId)">Comment</div>
+                                    <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(index,index1)">Comment</div>
                                 </div>
-                                <hr class="mx-4 mb-4 mt-1">
+                                <hr class="mx-4 mb-4 mt-1"> 
                                 <!-- comment box -->
-                                <div v-if="comments[comment.postId] == true">
+                                <div v-if="secondLevelComments[index1] == true">
                                     <div class="input-group pl-3 pr-3">
-                                        <textarea v-model=commentBody[comment.postId] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
+                                        <textarea v-model=secondLevelCommentBody[index1] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
                                     </div>
                                     <div class="mt-2 mr-2 pr-3">
-                                        <input class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="createPost(commentBody[comment.postId],comment.postId, result.postId)" :disabled=" commentBody[comment.postId] ==''" style="float:right" />
+                                        <input type="button" class="frndsButton btn btn-primary col-2 " value="Comment" v-on:click="secondLevelUpdate(index,index1,'comment')" :disabled=" typeof secondLevelCommentBody[index1]=== 'undefined' || secondLevelCommentBody[index1] ==''"  style="float:right" />
                                     </div>
                                 </div>
                                 <!-- comments of comments -->
-                                <div v-for="(commentOfComment, index1) in comment.children" class="mb-2 px-5 py-1">
+                                 <div v-for="(commentOfComment, index1) in comment.comment" class="mb-2 px-5 py-1">
                                     <div class="pl-4">
-                                        <p class="blueText mb-0"> {{ commentOfComment.screenName }} </p>
+                                        <p class="blueText mb-0"> {{ commentOfComment.screen_name }} </p>
                                         <p class="greyText mb-0"> {{ commentOfComment.timestamp.split(" ")[0] }} </p>
                                     </div>
                                     <div class="px-4 py-0 mb-0">
-                                        <p class="mb-0"> {{ commentOfComment.text }} </p>
+                                        <p class="mb-0"> {{ commentOfComment.post_body }} </p>
                                     </div>
                                     <div class="px-4 py-0 mb-0">
-                                        <p class="greyText py-0 mb-0"> {{ commentOfComment.noOfLikes }} Likes </p>
-                                    </div>
+                                        <p class="greyText py-0 mb-0"> {{ commentOfComment.likes?commentOfComment.likes.length:0 }} Likes </p>
+                                    </div> 
                                     <!-- like and comment button -->
                                     <hr class="mx-4 mt-0 mb-1">
                                     <div class="row">
                                         <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like == null">Like</div>
                                         <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like != null">Unlike</div>
                                         <div class="col-2"></div>
-                                        <!-- <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(commentOfComment.postId)">Comment</div> -->
+                                        <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(commentOfComment.postId)">Comment</div>
                                     </div>
                                     <hr class="mx-4 mb-4 mt-1">
                                 </div>
@@ -223,7 +223,7 @@ if (!isset($_SESSION['user'])) {
                         </div>
 
                         </div>
-                    </div>
+                    </div> 
                     <!-- Right pannel -->
                     <div class="col-md-3" style="max-height: calc( 100vh - 62px ) !important;">
                         <div class="card" style="min-height: calc( 100vh - 62px )">
@@ -280,7 +280,10 @@ if (!isset($_SESSION['user'])) {
                         newPostBody: "",
                         allPosts: [],
                         comments: [],
-                        commentBody: []
+                        secondLevelComments:[],
+                        thirdLevelComments:[],
+                        commentBody: [],
+                        secondLevelCommentBody:[],
                     }
                 },
 
@@ -505,27 +508,62 @@ if (!isset($_SESSION['user'])) {
                                 console.log('Request failed', error);
                             });
                     },
-                    // Method to like a post
-                    like: function(id, noOfLikes, like) {
+                    secondLevelUpdate:function(index,index1,action){
+                        let post = this.allPosts[index];
+                        let SelectedComment = post.comment[index1];
 
+                        if(action == 'like'){
+                            SelectedComment.likes.push(this.userEmail);
+                        }else if(action=='unLike'){
+                            SelectedComment.likes = SelectedComment.likes.filter(e => e!==this.userEmail);
+                        }else if(action=='comment'){
+                            let commentObj = {
+                                post_body:this.secondLevelCommentBody[index1],
+                                email:this.userEmail,
+                                timestamp: new Date().toJSON().replace("T"," "),
+                                likes:[],
+                                comment:[]
+                            }
+                            SelectedComment.comment.push(commentObj);
+                            this.flipComments(index,index1,null);
+                            this.secondLevelCommentBody[index1]='';
+                        }
+                        post.comment[index1] = SelectedComment;
+                        this.allPosts[index] = post;
+                        this.firstLevelUpdate(index,"");
+                    },
+                    // Method to like and  comment a parent post
+                    firstLevelUpdate: function(index,action) {
+                        let post = this.allPosts[index];
+
+                        if(action == 'like'){
+                            post.likes.push(this.userEmail);
+                        }else if(action=='unLike'){
+                            post.likes = post.likes.filter(e => e!==this.userEmail);
+                        }else if(action=='comment'){
+                            let commentObj = {
+                                post_body:this.commentBody[index],
+                                email:this.userEmail,
+                                timestamp: new Date().toJSON().replace("T"," "),
+                                likes:[],
+                                comment:[]
+                            }
+                            post.comment.push(commentObj);
+                            this.flipComments(index,null,null);
+                            this.commentBody[index]='';
+                        }
+                       
                         var self = this;
                         let qbody = {};
-
-                        if (like == null) {
-                            url = './api.php/like';
-                            qbody = {
-                                email: this.userEmail,
-                                postid: id,
-                                count: parseInt(noOfLikes) + 1
-                            }
-                        } else {
-                            url = './api.php/unlike';
-                            qbody = {
-                                email: this.userEmail,
-                                postid: id,
-                                count: parseInt(noOfLikes) - 1
-                            }
+                        url = './api.php';
+                        qbody = {
+                           method:"updatePost",
+                           _id:post._id.$oid,
+                           likes:post.likes,
+                           comment:post.comment
                         }
+
+                        console.log(qbody);
 
                         fetch(url, {
                                 method: 'post',
@@ -538,7 +576,7 @@ if (!isset($_SESSION['user'])) {
                             .then(function(data) {
                                 if (data.status == "Success") {
                                     self.fetchAllPosts();
-                                    console.log(data)
+                                    // console.log(data)
                                 } else {
                                     console.log(JSON.stringify(data));
                                 }
@@ -547,12 +585,24 @@ if (!isset($_SESSION['user'])) {
                                 console.log('Request failed', error);
                             });
                     },
-                    flipComments: function(index) {
-                        if (this.comments[index] == true) {
-                            Vue.set(this.comments, index, false);
-                        } else {
-                            Vue.set(this.comments, index, true);
+                    flipComments: function(index,index1,index2) {
+                        if(index1== null && index2 == null){
+                            if (this.comments[index] == true) {
+                                Vue.set(this.comments, index, false);
+                            } else {
+                                Vue.set(this.comments, index, true);
+                            }
+                        }else if(index2 == null){
+                           
+                            self=this;
+                            if (this.secondLevelComments[index1] == true) {
+                                Vue.set(self.secondLevelComments, index1, false);
+                            } else {
+                                Vue.set(self.secondLevelComments, index1, true);
+                            }
+                            console.log(self.secondLevelComments);
                         }
+                        
                     },
                     createComment: function(postArr) {
                         // debugger

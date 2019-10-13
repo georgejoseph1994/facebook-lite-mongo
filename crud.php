@@ -459,23 +459,56 @@ function createPostTree($array, $postParentId)
 // Method to like
 function like_post($body, $response)
 {
+//     try {
+//         $client = new MongoDB\Client("mongodb://mongo:27017");
+//         $collection = $client->facebook->posts;
+//             $collection->updateOne(
+//                 ['email' => $body->user_email_a],
+//                 [
+//                     '$addToSet' => [
+//                         'friendships' => [
+//                             'email' => $body->user_email_b,
+//                             'screen_name' => $body->screen_name_b,
+//                             'status' => 'S'
+//                         ]
+//                     ]
+//                 ]
+//             );
+//         }
+//         $response->status = "Success";
+//         $response->code = 200;
+//         http_response_code(200);
+//     } catch (Exception $e) {
+//         $filename = basename(__FILE__);
+//         echo "The $filename script has experienced an error.\n";
+//         echo "It failed with the following exception:\n";
+//         echo "Exception:", $e->getMessage(), "\n";
+//         echo "In file:", $e->getFile(), "\n";
+//         echo "On line:", $e->getLine(), "\n";
+//         $response->status = "Error";
+//         $response->code = 400;
+//         http_response_code(400);
+//         $response->errMsg = $e->getMessage();
+//     }
+}
+
+// Method to like
+function update_post($body, $response)
+{
     try {
         $client = new MongoDB\Client("mongodb://mongo:27017");
         $collection = $client->facebook->posts;
-        if($body->status1=="S"){
-            $collection->updateOne(
-                ['email' => $body->user_email_a],
-                [
-                    '$addToSet' => [
-                        'friendships' => [
-                            'email' => $body->user_email_b,
-                            'screen_name' => $body->screen_name_b,
-                            'status' => 'S'
-                        ]
-                    ]
+        $collection->updateOne(
+            ['_id' => new \MongoDB\BSON\ObjectID($body->_id)],
+            [
+                '$set' => [
+                    'comment' =>$body->comment,
+                    'likes'=>$body->likes,
                 ]
-            );
-        }
+            ]
+        );
+        $response->test = $body->_id;
+        $response->body=$body;
         $response->status = "Success";
         $response->code = 200;
         http_response_code(200);
@@ -492,6 +525,7 @@ function like_post($body, $response)
         $response->errMsg = $e->getMessage();
     }
 }
+
 
 // Method to unlike
 function unlike_post($body, $response)

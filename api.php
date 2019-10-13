@@ -48,6 +48,9 @@ switch($requestMethod){
         elseif($method == "fetchPost"){
           fetch_post($body,$response);
         }
+        elseif($method == "updatePost"){
+          update_post($body,$response);
+        }
     }
     echo json_encode($response);
 }
