@@ -663,10 +663,12 @@ if (!isset($_SESSION['user'])) {
                 }
 
             },
-
+            /*
+            *  Method to fetch freinds request and post on load
+            */ 
             mounted() {
                 this.fetchFriendsRequest(),
-                    this.fetchAllPosts()
+                this.fetchAllPosts()
             }
         });
     </script>
