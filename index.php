@@ -187,7 +187,7 @@ if (!isset($_SESSION['user'])) {
                                 </div>
                                 <hr class="mx-4 mb-4 mt-1">
                                 <!-- comment box -->
-                                <div v-if="secondLevelComments[index1] == true">
+                                <div v-if="secondLevelComments[index1] == true && selectedPost == index">
                                     <div class="input-group pl-3 pr-3">
                                         <textarea v-model=secondLevelCommentBody[index1] class="form-control mx-2" placeholder="Comment" aria-label="With textarea" maxlength="200"></textarea>
                                     </div>
@@ -282,6 +282,7 @@ if (!isset($_SESSION['user'])) {
                     comments: [],
                     secondLevelComments: [],
                     thirdLevelComments: [],
+                    selectedPost:"",
                     // These variables have comment body 
                     commentBody: [],
                     secondLevelCommentBody: [],
@@ -642,12 +643,13 @@ if (!isset($_SESSION['user'])) {
                             Vue.set(this.comments, index, true);
                         }
                     } else if (index2 == null) {
-
                         self = this;
                         if (this.secondLevelComments[index1] == true) {
                             Vue.set(self.secondLevelComments, index1, false);
+                            self.selectedPost = "";
                         } else {
                             Vue.set(self.secondLevelComments, index1, true);
+                            self.selectedPost = index;
                         }
                        
                     } else {
@@ -657,18 +659,19 @@ if (!isset($_SESSION['user'])) {
                         } else {
                             Vue.set(self.thirdLevelComments, index2, true);
                         }
-                       
                     }
-
                 }
-
             },
             /*
             *  Method to fetch freinds request and post on load
             */ 
             mounted() {
-                this.fetchFriendsRequest(),
-                this.fetchAllPosts()
+                this.fetchFriendsRequest();
+                this.fetchAllPosts();
+                for (i=0; i <10; i++){
+                    this.allLevelComments[i]=new Array(10);
+                }
+                    
             }
         });
     </script>
