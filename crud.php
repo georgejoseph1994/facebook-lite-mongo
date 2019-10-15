@@ -207,8 +207,9 @@ function search_user($body, $response)
     }
 }
 
-
-// Method to send request to a user
+/*
+*  Method to send request to a user
+*/
 function send_friends_request($body, $response)
 {
     try {
@@ -258,8 +259,9 @@ function send_friends_request($body, $response)
     }
 }
 
-
-// Method to fetch_friends_request
+/*
+*   Method to fetch_friends_request
+*/
 function fetch_friendships($body, $response)
 {
     try {
@@ -286,8 +288,9 @@ function fetch_friendships($body, $response)
         $response->errMsg = $e->getMessage();
     }
 }
-
-// Method to send request to a user
+/*
+*  Method to respond to a friends request
+*/
 function respond_friends_request($body, $response)
 {
     try {
@@ -332,7 +335,9 @@ function respond_friends_request($body, $response)
     }
 }
 
-// Method to send request to a user
+/*
+*  Method to create a post
+*/
 function create_post($body, $response)
 {
     try {
@@ -365,8 +370,9 @@ function create_post($body, $response)
     }
 }
 
-
-// Method to fetch_all_post
+/*
+*  Method to fetch_all_post
+*/
 function fetch_post($body, $response)
 {
     try {
@@ -440,7 +446,9 @@ function fetch_post($body, $response)
     }
 }
 
-// Method to like
+/*
+* Method to update post
+*/
 function update_post($body, $response)
 {
     try {
@@ -474,8 +482,9 @@ function update_post($body, $response)
     }
 }
 
-
-// Method to unlike
+/*
+* Method to delete_user
+*/
 function delete_user($body, $response)
 {
     try {
