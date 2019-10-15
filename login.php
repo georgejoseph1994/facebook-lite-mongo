@@ -1,6 +1,5 @@
 <?php
 session_start();
-// session_destroy();
 if (isset($_SESSION['user'])) {
     header('Location: index.php');
     exit;
@@ -34,6 +33,10 @@ if (isset($_SESSION['user'])) {
     .btnSubmit {
         display: block;
         margin: 0 auto;
+        width: 100px;
+    }
+    .green{
+        background-color: green;;
     }
 </style>
 
@@ -60,8 +63,9 @@ if (isset($_SESSION['user'])) {
                         <div class="form-group">
                             <input type="button" class="btnSubmit btn btn-primary" value="Login" onclick="login()" />
                         </div>
-                        <a href="./signup.php">signup</a>
-
+                        <div class="form-group">
+                            <a href="./signup.php"><input type="button" href="./signup.php" class="btnSubmit btn btn-primary green" value="signup"  /></a>
+                        </div>
                         <div class="alert alert-danger mt-5" id="login_err" style="display:none" role="alert">
                             Error. The credentials you have entered is invalid.
                         </div>
@@ -92,7 +96,10 @@ if (isset($_SESSION['user'])) {
             email: document.getElementById('sign_up_email').value,
             password: document.getElementById('sign_up_password').value,
         }
-
+        
+        /*
+        * Sending request to the server to login.
+        */
         url = './api.php'
         fetch(url, {
                 method: 'post',

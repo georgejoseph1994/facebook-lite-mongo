@@ -451,9 +451,7 @@ if (!isset($_SESSION['user'])) {
                                 .then(function(data) {
                                     if (data.status == "Success") {
                                         self.fetchAllPosts();
-                                        Vue.set(self.commentBody, parentId, "");
-                                        // self.commentBody[parentId] = "";
-                                        console.log(data)
+                                        self.newPostBody="";
                                     } else {
                                         console.log(JSON.stringify(data));
                                     }
