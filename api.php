@@ -51,6 +51,9 @@ switch($requestMethod){
         elseif($method == "updatePost"){
           update_post($body,$response);
         }
+        elseif($method == "deleteUser"){
+          delete_user($body,$response);
+        }
     }
     echo json_encode($response);
 }

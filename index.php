@@ -198,7 +198,7 @@ if (!isset($_SESSION['user'])) {
                                     </div>
                                 </div>
                                 <!-- comments of comments -->
-                                 <div v-for="(commentOfComment, index1) in comment.comment" class="mb-2 px-5 py-1">
+                                 <div v-for="(commentOfComment, index2) in comment.comment" class="mb-2 px-5 py-1">
                                     <div class="pl-4">
                                         <p class="blueText mb-0"> {{ commentOfComment.screen_name }} </p>
                                         <p class="greyText mb-0"> {{ commentOfComment.timestamp.split(" ")[0] }} </p>
@@ -212,10 +212,10 @@ if (!isset($_SESSION['user'])) {
                                     <!-- like and comment button -->
                                     <hr class="mx-4 mt-0 mb-1">
                                     <div class="row">
-                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like == null">Like</div>
-                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="like(commentOfComment.postId, commentOfComment.noOfLikes, commentOfComment.like )" v-if="commentOfComment.like != null">Unlike</div>
+                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="thirdLevelUpdate(index,index1,index2,'like')" v-if="commentOfComment.likes.indexOf(userEmail) < 0">Like</div>
+                                        <div class="col-5  whitebtn likeBtn text-right" v-on:click="thirdLevelUpdate(index,index1,index2,'unLike')" v-if="commentOfComment.likes.indexOf(userEmail) > -1">Unlike</div>
                                         <div class="col-2"></div>
-                                        <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(commentOfComment.postId)">Comment</div>
+                                        <!-- <div class="col-5  whitebtn commentBtn text-left" v-on:click="flipComments(index,index1,index2)">Comment1</div> -->
                                     </div>
                                     <hr class="mx-4 mb-4 mt-1">
                                 </div>
@@ -284,6 +284,7 @@ if (!isset($_SESSION['user'])) {
                         thirdLevelComments:[],
                         commentBody: [],
                         secondLevelCommentBody:[],
+                        thirdLevelCommentBody:[],
                     }
                 },
 
@@ -508,6 +509,32 @@ if (!isset($_SESSION['user'])) {
                                 console.log('Request failed', error);
                             });
                     },
+                    thirdLevelUpdate:function(index,index1,index2,action){
+                        let post = this.allPosts[index];
+                        let SelectedComment = post.comment[index1];
+                        let thirdLevelComment = SelectedComment.comment[index2];
+
+                        if(action == 'like'){
+                            thirdLevelComment.likes.push(this.userEmail);
+                        }else if(action=='unLike'){
+                            thirdLevelComment.likes = thirdLevelComment.likes.filter(e => e!==this.userEmail);
+                        }else if(action=='comment'){
+                            let commentObj = {
+                                post_body:this.thirdLevelCommentBody[index2],
+                                email:this.userEmail,
+                                timestamp: new Date().toJSON().replace("T"," "),
+                                likes:[],
+                                comment:[]
+                            }
+                            thirdLevelComment.comment.push(commentObj);
+                            this.flipComments(index,index1,index2);
+                            this.thirdLevelCommentBody[index2]='';
+                        }
+                        SelectedComment.comment[index2]=thirdLevelComment;
+                        post.comment[index1] = SelectedComment;
+                        this.allPosts[index] = post;
+                        this.firstLevelUpdate(index,"");
+                    },
                     secondLevelUpdate:function(index,index1,action){
                         let post = this.allPosts[index];
                         let SelectedComment = post.comment[index1];
@@ -600,7 +627,15 @@ if (!isset($_SESSION['user'])) {
                             } else {
                                 Vue.set(self.secondLevelComments, index1, true);
                             }
-                            console.log(self.secondLevelComments);
+                            // console.log(self.secondLevelComments);
+                        }else{
+                            self=this;
+                            if (this.thirdLevelComments[index2] == true) {
+                                Vue.set(self.thirdLevelComments, index2, false);
+                            } else {
+                                Vue.set(self.thirdLevelComments, index2, true);
+                            }
+                            // console.log(self.thirdLevelComments);
                         }
                         
                     },

@@ -387,6 +387,7 @@ function fetch_post($body, $response)
                         $userAssociativeArr[$friends->email]=$friends->screen_name;
                     }
                 }
+                // Adding current user
                 array_push($userlist, $user->email);
                 $userAssociativeArr[$user->email]=$user->screen_name;
             }else{
@@ -394,9 +395,15 @@ function fetch_post($body, $response)
                     array_push($userlist, $user->email);
                     $userAssociativeArr[$user->email]=$user->screen_name;
                 }
-            }
-           
+            }           
         };
+        $here="";
+        //If user is private add his email to the list.
+        if(!in_array($_SESSION['user']->email,$userlist)){
+            $here="added";
+            array_push($userlist, $_SESSION['user']->email);
+            $userAssociativeArr[ $_SESSION['user']->email]= $_SESSION['user']->screen_name;
+        }
 
         $postCollection = $client->facebook->posts;
 
@@ -413,7 +420,8 @@ function fetch_post($body, $response)
 
         // $response->arr=$userAssociativeArr;
         $response->postlist=$postlist;
-        // $response->userlist=$userlist;
+            // $response->here = $here;
+            $response->userlist=$userlist;
         $response->status = "Success";
         $response->code = 200;
         http_response_code(200);
@@ -430,66 +438,6 @@ function fetch_post($body, $response)
         http_response_code(400);
         $response->errMsg = $e->getMessage();
     }
-}
-
-
-function createPostTree($array, $postParentId)
-{
-    $posts = array();
-    foreach ($array as $row) {
-        if ($row['POST_PARENT_ID'] == $postParentId) {
-            $post = new STDClass();
-            $post->postId = $row['POSTRESPONSEID'];
-            $post->text = $row['BODY'];
-            $post->parentId = $row['POST_PARENT_ID'];
-            $post->rootParentId = $row['ROOT_PARENT_ID'];
-            $post->like = $row['LIKED'];
-            $post->email = $row['USER_EMAIL'];
-            $post->screenName = $row['SCREEN_NAME'];
-            $post->timestamp = $row['TIMESTAMP'];
-            $post->noOfLikes = $row['LIKECOUNT'];
-            $post->children = createPostTree($array, $row['POSTRESPONSEID']);
-            array_push($posts, $post);
-        }
-    }
-    return $posts;
-}
-
-
-// Method to like
-function like_post($body, $response)
-{
-//     try {
-//         $client = new MongoDB\Client("mongodb://mongo:27017");
-//         $collection = $client->facebook->posts;
-//             $collection->updateOne(
-//                 ['email' => $body->user_email_a],
-//                 [
-//                     '$addToSet' => [
-//                         'friendships' => [
-//                             'email' => $body->user_email_b,
-//                             'screen_name' => $body->screen_name_b,
-//                             'status' => 'S'
-//                         ]
-//                     ]
-//                 ]
-//             );
-//         }
-//         $response->status = "Success";
-//         $response->code = 200;
-//         http_response_code(200);
-//     } catch (Exception $e) {
-//         $filename = basename(__FILE__);
-//         echo "The $filename script has experienced an error.\n";
-//         echo "It failed with the following exception:\n";
-//         echo "Exception:", $e->getMessage(), "\n";
-//         echo "In file:", $e->getFile(), "\n";
-//         echo "On line:", $e->getLine(), "\n";
-//         $response->status = "Error";
-//         $response->code = 400;
-//         http_response_code(400);
-//         $response->errMsg = $e->getMessage();
-//     }
 }
 
 // Method to like
@@ -528,78 +476,109 @@ function update_post($body, $response)
 
 
 // Method to unlike
-function unlike_post($body, $response)
-{
-    // Establishing a connection to the database
-    try {
-        $conn = connect();
-
-        $query =  "BEGIN DELETE FROM LIKES WHERE POSTID=:postid AND USER_EMAIL=:email ; UPDATE post_response SET LIKECOUNT = :count WHERE POSTRESPONSEID= :postid; END;";
-
-
-        $stid = oci_parse($conn, $query);
-        oci_bind_by_name($stid, ':email', $body->email);
-        oci_bind_by_name($stid, ':postid', $body->postid);
-        oci_bind_by_name($stid, ':count', $body->count);
-
-        oci_execute($stid);
-        $ncols = oci_num_rows($stid);
-        $result = oci_commit($conn);
-
-        $errorMessage = oci_error($stid);
-
-        if ($errorMessage || $ncols == 0) {
-            $response->errorMessage = $errorMessage;
-            $response->code = http_response_code(200);
-            $response->status = "Error";
-        } else {
-            $response->status = "Success";
-            $response->code = http_response_code(200);
-        }
-    } catch (Exception $e) {
-        $response->status = "Error";
-        $response->errorMessage = $e;
-        oci_close($conn);
-    }
-    if ($conn) {
-        oci_close($conn);
-    }
-}
-
-// Method to unlike
 function delete_user($body, $response)
 {
-    // Establishing a connection to the database
     try {
-        $conn = connect();
+        $client = new MongoDB\Client("mongodb://mongo:27017");
+        $collection = $client->facebook->posts;
 
-        $query =  "DELETE from \"User\" where EMAIL = :email";
+        /*
+        * Deleting Posts by the user
+        */
+        $collection->deleteMany([
+            'email'=> $body->email
+        ]);
+        
+        /*
+        * Deleting first level comments by the user
+        */
+        $collection->updateMany(
+            [],
+            [
+                '$pull' =>
+                [
+                    'comment'=>['email'=>$body->email]
+                ]
+                
+            ]
+        );
+        /*
+        * Deleting first level likes by the user
+        */
+        $collection->updateMany(
+            [],
+            [
+                '$pull' =>
+                [
+                    'likes'=>$body->email
+                ]
+                
+            ]
+        );
+        /*
+        * Deleting second level comments by the user
+        */
+        $regex = new MongoDB\BSON\Regex('.*' . $body->search);
 
+        $collection->updateMany(
+            ['comment.email' => $regex],
+            [
+                '$pull' =>
+                [
+                    'comment.$.comment'=>['email' => $body->email]
+                ]
+            ]
+        );
+        /*
+        * Deleting second level likes by the user
+        */
+        $regex = new MongoDB\BSON\Regex('.*' . $body->search);
 
-        $stid = oci_parse($conn, $query);
+        $collection->updateMany(
+            ['comment.email' => $regex],
+            [
+                '$pull' =>
+                [
+                    'comment.$.likes'=>$body->email
+                ]
+            ]
+        );
 
-        oci_bind_by_name($stid, ':email', $body->email);
-        oci_execute($stid);
-        $ncols = oci_num_rows($stid);
-        $result = oci_commit($conn);
+        $collection = $client->facebook->member;
+        /*
+        * Deleting user from other users friends list
+        */
+        $collection->updateMany(
+            [],
+            [
+                '$pull' =>
+                [
+                    'friendships'=>['email' => $body->email]
+                ]
+            ]
+        );
+        /*
+        * Deleting Posts by the user
+        */
+        $collection->deleteOne([
+            'email'=> $body->email
+        ]);
 
-        $errorMessage = oci_error($stid);
-
-        if ($errorMessage || $ncols == 0) {
-            $response->errorMessage = $errorMessage;
-            $response->code = http_response_code(200);
-            $response->status = "Error";
-        } else {
-            $response->status = "Success";
-            $response->code = http_response_code(200);
-            $_SESSION['user'] = null;
-        }
+        $response->status = "Success";
+        $response->code = 200;
+        http_response_code(200);
+        session_destroy();
+       
     } catch (Exception $e) {
+        $filename = basename(__FILE__);
+        echo "The $filename script has experienced an error.\n";
+        echo "It failed with the following exception:\n";
+        echo "Exception:", $e->getMessage(), "\n";
+        echo "In file:", $e->getFile(), "\n";
+        echo "On line:", $e->getLine(), "\n";
         $response->status = "Error";
-        $response->errorMessage = $e;
-        oci_close($conn);
-    }
-    if ($conn) {
-        oci_close($conn);
+        $response->code = 400;
+        http_response_code(400);
+        $response->errMsg = $e->getMessage();
     }
 }

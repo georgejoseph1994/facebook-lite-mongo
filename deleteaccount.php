@@ -92,9 +92,10 @@ if (!isset($_SESSION['user'])) {
     document.getElementById('del_succ').style.display = 'none';
 
     function deleteUser() {
-        url = './api.php/deleteUser'
+        url = './api.php'
         let qbody = {
-            email: "<?php echo ($_SESSION['user']->email) ?>",
+            method:"deleteUser",
+            email: "<?php echo ($_SESSION['user']->email) ?>"
         }
         fetch(url, {
                 method: 'post',
@@ -108,7 +109,7 @@ if (!isset($_SESSION['user'])) {
                 if (data.status == "Success") {
                     document.getElementById('del_succ').style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = 'http://titan.csit.rmit.edu.au/~s3752764/login.php';
+                        window.location.href = '/login.php';
                     }, 1000);
 
                 } else {
